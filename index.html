@@ -259,7 +259,7 @@
     <header class="topbar">
       <div class="title-wrap">
         <h1>物料标签与条码打印工具</h1>
-        <p>按参考模板生成物料标签；可拖拽调整项目顺序、隐藏说明区、自定义条码标题位置，并支持 PNG 导出与直接打印。</p>
+        <p>生成可直接打印的物料标签；支持拖拽调整项目顺序、自定义条码标题位置、PNG 导出与直接打印。</p>
       </div>
       <span class="offline-badge">单文件 · 可离线使用</span>
     </header>
@@ -314,15 +314,9 @@
         </section>
 
         <section class="section" id="fullOptions">
-          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">默认按最后一张参考模板排版</span></div>
-          <label class="field-label">打印范围</label>
-          <div class="scope-card">
-            <label class="scope-option"><input type="radio" name="printScope" value="full" checked /><span><strong>主标签 + 标签说明</strong><span>打印左侧标签和右侧说明。</span></span></label>
-            <label class="scope-option"><input type="radio" name="printScope" value="main" /><span><strong>只打印主标签</strong><span>取消右侧说明区，主标签自动占满。</span></span></label>
-          </div>
+          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">主标签内容按拖拽顺序打印</span></div>
           <div class="field-grid">
-            <div class="field"><label class="field-label" for="notesTitle">右侧说明区标题</label><input id="notesTitle" type="text" value="标签说明" /></div>
-            <div class="field"><label class="field-label">条码数字</label><label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label></div>
+            <div class="field full"><label class="field-label">条码数字</label><label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label></div>
           </div>
           <details class="config-group" open>
             <summary>主标签排版（按住 ⋮⋮ 上下拖动）</summary>
@@ -477,7 +471,7 @@
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
       batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchMaterialLength:$('batchMaterialLength'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'),
-      notesTitle:$('notesTitle'), labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
+      labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
       captionQuantity:$('captionQuantity'), captionBatchBarcode:$('captionBatchBarcode'), captionBatchNo:$('captionBatchNo'), captionMaterial:$('captionMaterial'),
       captionPosQuantity:$('captionPosQuantity'), captionPosBatchBarcode:$('captionPosBatchBarcode'), captionPosBatchNo:$('captionPosBatchNo'), captionPosMaterial:$('captionPosMaterial'),
       singleField:$('singleField'), codeType:$('codeType'), customValue:$('customValue'), customTitle:$('customTitle'),
@@ -586,9 +580,7 @@
       const batchBarcode=(fields.batchPrefix.value + materialPart + middle + batchNo + fields.batchSuffix.value).trim();
       let width=clamp(fields.labelWidth.value,20,250,115), height=clamp(fields.labelHeight.value,15,250,75);
       if (fields.orientation.value==='swap') [width,height]=[height,width];
-      const scopeEl=document.querySelector('input[name="printScope"]:checked');
-      const printScope=scopeEl ? scopeEl.value : 'full';
-      return { materialCode,materialName,productionDate,batchNo,quantity,batchBarcode,width,height,printScope,
+      return { materialCode,materialName,productionDate,batchNo,quantity,batchBarcode,width,height,
         copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1) };
     }
 
@@ -709,36 +701,8 @@
       return {main,svg};
     }
 
-    function renderNotes(v) {
-      const notes=document.createElement('div'); notes.className='template-notes';
-      const h=document.createElement('h3'); h.textContent=fields.notesTitle.value.trim()||'标签说明'; notes.appendChild(h);
-      const add=(txt,cls='')=>{
-        const p=document.createElement('div');
-        p.className=('note-line '+cls).trim();
-        p.textContent=txt;
-        notes.appendChild(p);
-      };
-      if ($('itemMaterialText').checked) add(fields.labelMaterialCode.value.trim()||'物料编码');
-      if ($('itemMaterialBarcode').checked) add((fields.labelMaterialCode.value.trim()||'物料编码')+'条形码','em');
-      if ($('itemBatchText').checked) add('生产日期  '+batchModeDescription());
-      if ($('itemBatchNoBarcode').checked) add((fields.labelBatchNo.value.trim()||'批次号')+'条形码','em');
-      if ($('itemMaterialNameText').checked) add('工厂型号');
-      if ($('itemQuantityText').checked) add(fields.labelQuantity.value.trim()||'数量');
-      if ($('itemQuantityBarcode').checked) add((fields.labelQuantity.value.trim()||'数量')+'条码');
-      if ($('itemBatchBarcode').checked) {
-        const n=Math.max(0,Number(fields.batchMaterialLength.value)||0);
-        const part=n>0 ? ('物料编码前'+n+'位') : '物料编码';
-        const p=document.createElement('div');
-        p.className='note-rule';
-        p.textContent='批次条码  '+part+' + 批次号；批次号为'+batchModeDescription();
-        notes.appendChild(p);
-      }
-      return notes;
-    }
-
     function renderFull(v, host) {
-      const shell=document.createElement('div'); shell.className='template-label';
-      if (v.printScope==='main') shell.classList.add('main-only');
+      const shell=document.createElement('div'); shell.className='template-label main-only';
       const main=document.createElement('div'); main.className='template-main';
       const items=visibleItems(v);
       const weights=items.map(({def})=>def.kind==='barcode'?1.35:.72);
@@ -766,7 +730,6 @@
       }
 
       shell.appendChild(main);
-      if (v.printScope==='full') shell.appendChild(renderNotes(v));
       if (!items.length) {
         const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少启用一个标签项目'; main.appendChild(empty);
       }
@@ -793,7 +756,7 @@
     function updateQualityCard(v,specs,barcodeRowH,itemCount) {
       const card=$('qualityCard'); if (!card) return;
       if (!specs.length) { card.className='quality-card'; card.textContent='清晰度检查：当前没有启用条码。'; return; }
-      const mainWidth=(v.width-v.padding*2)*(v.printScope==='full'?.56:1);
+      const mainWidth=v.width-v.padding*2;
       let minModule=Infinity;
       for (const spec of specs) {
         const modules=code128Modules(spec.value);
@@ -984,7 +947,7 @@
       const ids=[
         'materialCode','materialName','productionDate','quantity','copies',
         'batchNoMode','batchNoManual','batchMaterialLength','batchPrefix','batchSuffix','batchSeparator',
-        'notesTitle','labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity',
+        'labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity',
         'captionQuantity','captionBatchBarcode','captionBatchNo','captionMaterial',
         'captionPosQuantity','captionPosBatchBarcode','captionPosBatchNo','captionPosMaterial',
         'singleField','codeType','customValue','customTitle',
@@ -995,8 +958,7 @@
         'itemMaterialNameText','itemQuantityText','itemQuantityBarcode','itemBatchBarcode',
         'fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'
       ];
-      const scopeEl=document.querySelector('input[name="printScope"]:checked');
-      const state={mode:stateMode,values:{},checks:{},scope:scopeEl?scopeEl.value:'full',order:layoutItemKeys()};
+      const state={mode:stateMode,values:{},checks:{},order:layoutItemKeys()};
       ids.forEach(id=>{ if ($(id)) state.values[id]=$(id).value; });
       checkIds.forEach(id=>{ if ($(id)) state.checks[id]=$(id).checked; });
       try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); } catch(_) {}
@@ -1012,8 +974,6 @@
       }
       Object.entries(saved.values||{}).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
       Object.entries(saved.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; });
-      const scope=document.querySelector('input[name="printScope"][value="'+(saved.scope||'full')+'"]');
-      if (scope) scope.checked=true;
       reorderItemRows(Array.isArray(saved.order)?saved.order:DEFAULT_ITEM_ORDER);
       stateMode=saved.mode==='single'?'single':'full';
     }
@@ -1023,7 +983,7 @@
       const values={
         materialCode:'3006177',materialName:'DTS-25R-V-B',productionDate:localDateISO(),quantity:'500',copies:'1',
         batchNoMode:'yymmdd',batchNoManual:'',batchMaterialLength:'7',batchPrefix:'',batchSuffix:'',batchSeparator:'',
-        notesTitle:'标签说明',labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',
+        labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',
         captionQuantity:'数量条码',captionBatchBarcode:'批次条码',captionBatchNo:'批次号条形码',captionMaterial:'物料编码条形码',
         captionPosQuantity:'none',captionPosBatchBarcode:'none',captionPosBatchNo:'none',captionPosMaterial:'none',
         singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',
@@ -1036,8 +996,6 @@
         fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:false
       };
       Object.entries(defaults).forEach(([id,val])=>{ if ($(id)) $(id).checked=val; });
-      const scope=document.querySelector('input[name="printScope"][value="full"]');
-      if (scope) scope.checked=true;
       reorderItemRows(DEFAULT_ITEM_ORDER);
       setMode('full');
     }
@@ -1088,7 +1046,6 @@
       if (el.type==='checkbox') el.addEventListener('change',updatePreview);
     });
     fields.sizePreset.addEventListener('change',syncPreset); fields.labelWidth.addEventListener('input',syncCustomSize); fields.labelHeight.addEventListener('input',syncCustomSize);
-    qsa('input[name="printScope"]').forEach(el=>el.addEventListener('change',updatePreview));
     $('swapBtn').addEventListener('click',swapSize); $('printBtn').addEventListener('click',printLabels); $('saveImageBtn').addEventListener('click',savePreviewPng); $('copyBtn').addEventListener('click',copyEncoded); $('resetBtn').addEventListener('click',resetExample);
     window.addEventListener('beforeprint',()=>{ try{buildPrintSheet()}catch(_){} });
     initDragOrdering();
