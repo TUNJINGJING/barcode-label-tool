@@ -127,7 +127,7 @@
     .table-print-row:last-child { border-bottom:0; }
     .table-cell { min-width:0; min-height:0; overflow:hidden; display:flex; align-items:center; padding:.5mm 1.1mm; }
     .table-key { border-right:.2mm solid #111; font-size:calc(var(--text-font) * .70); font-weight:600; line-height:1.05; white-space:nowrap; text-overflow:ellipsis; }
-    .table-value { border-right:.2mm solid #111; font-size:var(--text-font); font-weight:500; line-height:1.05; white-space:nowrap; text-overflow:ellipsis; }
+    .table-value { border-right:.2mm solid #111; font-size:var(--text-font); font-weight:500; line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:clip; }
     .table-barcode { padding:.3mm 1.4mm; display:flex; flex-direction:column; align-items:stretch; justify-content:center; }
     .table-barcode.empty { background:#fff; }
     .table-barcode .barcode-graphic { flex:0 1 auto; min-height:0; width:var(--table-barcode-width); height:var(--table-barcode-height); align-self:center; }
@@ -438,7 +438,7 @@
               <input id="labelPadding" type="number" min="0" max="20" step="0.5" value="2" />
             </div>
             <div class="field">
-              <div class="label-line"><label class="field-label" for="textFont">内容字号 pt</label><span class="help-tip" tabindex="0" data-tip="调整整张标签左侧项目名称、中间内容和条码数字的整体字号。">?</span></div>
+              <div class="label-line"><label class="field-label" for="textFont">内容字号 pt</label><span class="help-tip" tabindex="0" data-tip="设置整张标签的基础字号。若某一格内容太长，系统会只缩小那一格，确保完整显示，不会让文字压到条码区域。">?</span></div>
               <input id="textFont" type="number" min="5" max="28" step="1" value="10" />
             </div>
             <div class="field">
@@ -509,7 +509,7 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v7';
+    const STORAGE_KEY = 'material-label-tool-v8';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
@@ -728,6 +728,38 @@
       renderCode128(svg,value);
     }
 
+    function fitCellText(el, basePt, minPt=6) {
+      if (!el) return true;
+      let size=Math.max(minPt, Number(basePt)||10);
+      el.style.fontSize=size+'pt';
+      el.style.letterSpacing='0';
+      const fits=()=>el.scrollWidth <= el.clientWidth + .5 && el.scrollHeight <= el.clientHeight + .5;
+      while (!fits() && size>minPt) {
+        size=Math.max(minPt,size-.5);
+        el.style.fontSize=size+'pt';
+      }
+      if (!fits()) {
+        el.style.fontSize=minPt+'pt';
+        el.style.transform='scaleX(.94)';
+        el.style.transformOrigin='left center';
+      } else {
+        el.style.transform='';
+      }
+      return fits();
+    }
+
+    function fitTableText(table, basePt) {
+      let ok=true;
+      table.querySelectorAll('.table-key').forEach(el=>{
+        const keyBase=Math.max(6,(Number(basePt)||10)*.70);
+        ok=fitCellText(el,keyBase,5.5) && ok;
+      });
+      table.querySelectorAll('.table-value').forEach(el=>{
+        ok=fitCellText(el,basePt,6) && ok;
+      });
+      return ok;
+    }
+
     function code128ModuleCount(value) {
       try {
         const codes=encodeCode128(value);
@@ -759,8 +791,9 @@
         const row=document.createElement('div'); row.className='table-print-row';
         const keyCell=document.createElement('div'); keyCell.className='table-cell table-key';
         keyCell.textContent=fields[def.label] ? fields[def.label].value.trim() : '';
+        keyCell.title=keyCell.textContent;
         const valueCell=document.createElement('div'); valueCell.className='table-cell table-value';
-        const value=String(def.value(v)||''); valueCell.textContent=value;
+        const value=String(def.value(v)||''); valueCell.textContent=value; valueCell.title=value;
         const barcodeCell=document.createElement('div'); barcodeCell.className='table-cell table-barcode';
         if ($(def.barcode) && $(def.barcode).checked) {
           try {
@@ -784,6 +817,14 @@
       if (rowH<10) table.classList.add('tiny');
       else if (rowH<13) table.classList.add('compact');
       host.appendChild(table);
+
+      requestAnimationFrame(()=>{
+        const allFit=fitTableText(table,v.textFont);
+        if (!allFit) {
+          lastRenderError ||= '有文字内容在当前标签尺寸下仍然放不下。请增大标签宽度、减少显示项目，或缩短字段名称后再打印。';
+          const status=$('status'); if (status) status.textContent=lastRenderError;
+        }
+      });
     }
 
     function renderSingle(v, host) {
@@ -844,8 +885,14 @@
     function swapSize() { const w=fields.labelWidth.value; fields.labelWidth.value=fields.labelHeight.value; fields.labelHeight.value=w; fields.orientation.value='normal'; syncCustomSize(); }
 
     function buildPrintSheet() {
-      updatePreview(); if (lastRenderError) throw new Error(lastRenderError);
-      const v=currentValues(); const sheet=$('printSheet'); sheet.replaceChildren();
+      updatePreview();
+      const v=currentValues();
+      const currentTable=$('labelInner').querySelector('.table-label');
+      if (currentTable && !fitTableText(currentTable,v.textFont)) {
+        lastRenderError ||= '有文字内容在当前标签尺寸下仍然放不下。请调整标签尺寸或字段名称后再打印。';
+      }
+      if (lastRenderError) throw new Error(lastRenderError);
+      const sheet=$('printSheet'); sheet.replaceChildren();
       for (let i=0;i<v.copies;i++) { const page=document.createElement('div'); page.className='print-label-page'; const clone=$('previewLabel').cloneNode(true); clone.removeAttribute('id'); clone.style.transform='none'; clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id')); page.appendChild(clone); sheet.appendChild(page); }
     }
     function printLabels() { try { buildPrintSheet(); $('status').textContent=''; requestAnimationFrame(()=>window.print()); } catch(e) { $('status').textContent=e.message; } }
@@ -883,6 +930,10 @@
       const oldShadow = paper.style.boxShadow;
       try {
         updatePreview();
+        const fitTable=$('labelInner').querySelector('.table-label');
+        if (fitTable && !fitTableText(fitTable,currentValues().textFont)) {
+          lastRenderError ||= '有文字内容在当前标签尺寸下仍然放不下。请调整标签尺寸或字段名称后再保存。';
+        }
         if (lastRenderError) throw new Error(lastRenderError);
         if (typeof html2canvas !== 'function') throw new Error('图片导出组件未加载，请重新打开此 HTML 文件。');
 
