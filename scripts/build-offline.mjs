@@ -45,7 +45,7 @@ const embeddedDependencies =
   '<script>\n/* qrcode-generator 1.4.4 — embedded for offline use */\n' + qrcode + '\n</script>\n' +
   '<script>\n/* html2canvas 1.4.1 — embedded for offline use */\n' + html2canvas + '\n</script>\n  ';
 
-html = html.replace(appScriptMarker, embeddedDependencies + appScriptMarker);
+html = html.replace(appScriptMarker, () => embeddedDependencies + appScriptMarker);
 
 html = html.replace(
   '<title>物料标签与条码打印工具</title>',
