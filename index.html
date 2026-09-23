@@ -6,8 +6,8 @@
   <title>物料标签与条码打印工具</title>
   <style>
     :root {
-      --label-w: 80mm;
-      --label-h: 80mm;
+      --label-w: 115mm;
+      --label-h: 75mm;
       --label-pad: 2mm;
       --barcode-h: 19mm;
       --title-font: 13pt;
@@ -103,6 +103,50 @@
     .quality-card.warn { background: #fffaeb; border-color: #fedf89; color: #b54708; }
     .quality-card.bad { background: #fef3f2; border-color: #fecdca; color: #b42318; }
 
+    .rule-summary { padding: 12px; border: 1px solid #b2ccff; border-radius: 10px; background: #f5f8ff; }
+    .rule-summary-title { margin: 0 0 8px; color: #1849a9; font-size: 12px; font-weight: 800; }
+    .rule-summary-line { margin: 4px 0; color: #344054; font-size: 12px; line-height: 1.55; }
+    .rule-summary-value { margin-top: 9px; padding: 9px 10px; border: 1px solid #d1e0ff; border-radius: 8px; background: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.55; overflow-wrap:anywhere; }
+
+    .label-item-list { display: grid; gap: 8px; margin-top: 10px; }
+    .label-item-row { display: grid; grid-template-columns: 34px minmax(132px,.9fr) minmax(160px,1.25fr) minmax(105px,.8fr); gap: 8px; align-items: center; padding: 9px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fff; transition: border-color .15s ease, opacity .15s ease, box-shadow .15s ease; }
+    .label-item-row.dragging { opacity: .45; border-color: #528bff; box-shadow: 0 0 0 2px rgba(21,94,239,.08); }
+    .drag-handle { display: grid; place-items: center; width: 30px; height: 40px; border-radius: 8px; background: #f2f4f7; color: #667085; cursor: grab; user-select: none; font-size: 19px; line-height: 1; }
+    .drag-handle:active { cursor: grabbing; }
+    .item-enable { display:flex; align-items:center; gap:7px; min-height:40px; color:#344054; font-size:12px; font-weight:750; }
+    .item-enable input { width:16px; height:16px; accent-color:var(--accent); }
+    .item-meta { color:#667085; font-size:10px; line-height:1.35; }
+    .item-controls { display:grid; grid-template-columns: 1fr; gap:5px; }
+    .item-controls.inline { grid-template-columns: minmax(0,1fr) 96px; }
+    .label-item-row .field-label { margin-bottom:4px; font-size:10px; }
+    .label-item-row input[type="text"], .label-item-row select { height:36px; }
+
+    .scope-card { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px; }
+    .scope-option { display:flex; align-items:flex-start; gap:8px; padding:10px; border:1px solid #e4e7ec; border-radius:10px; background:#fff; cursor:pointer; }
+    .scope-option input { margin-top:2px; accent-color:var(--accent); }
+    .scope-option strong { display:block; font-size:12px; color:#344054; }
+    .scope-option span { display:block; margin-top:3px; color:#667085; font-size:10px; line-height:1.4; }
+
+    .template-label { width:100%; height:100%; min-height:0; display:grid; grid-template-columns: minmax(0,56%) minmax(0,44%); gap:2mm; overflow:hidden; }
+    .template-label.main-only { display:block; }
+    .template-main { width:100%; height:100%; min-height:0; display:grid; gap:.5mm; overflow:hidden; padding:.5mm .5mm; }
+    .template-item { min-height:0; min-width:0; overflow:hidden; }
+    .template-text { display:grid; grid-template-columns: 34% 66%; align-items:center; padding:0 1.2mm; font-size:var(--text-font); line-height:1.08; }
+    .template-text .template-key, .template-text .template-value { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .template-barcode { display:flex; flex-direction:column; min-height:0; align-items:stretch; justify-content:flex-start; padding:.2mm 1.6mm; }
+    .template-barcode .barcode-main { flex:1 1 0; min-height:0; }
+    .template-barcode .human-text { margin-top:.08mm; }
+    .template-notes { width:100%; height:100%; min-height:0; display:flex; flex-direction:column; justify-content:flex-start; padding:1.2mm 1.5mm; overflow:hidden; }
+    .template-notes h3 { margin:0 0 3mm; text-align:center; font-size:calc(var(--text-font) * 1.25); line-height:1.05; }
+    .note-line { margin:0 0 2.1mm; font-size:var(--text-font); line-height:1.25; white-space:normal; overflow-wrap:anywhere; }
+    .note-line.em { color:#175cd3; }
+    .note-rule { margin-top:auto; padding-top:1mm; font-size:calc(var(--text-font) * .94); line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+    .template-label.compact .template-text { font-size:calc(var(--text-font) * .88); }
+    .template-label.compact .human-text { font-size:calc(var(--text-font) * .82); }
+    .template-label.tiny .template-text { font-size:calc(var(--text-font) * .76); padding:0 .7mm; }
+    .template-label.tiny .human-text { font-size:calc(var(--text-font) * .7); }
+    .template-label.tiny .note-line { margin-bottom:1mm; font-size:calc(var(--text-font) * .78); }
+
     .actions { display: grid; grid-template-columns: 1.2fr 1fr .85fr .8fr; gap: 9px; margin-top: 18px; }
     .btn { min-height: 43px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 750; transition: transform .08s ease, background .15s ease; }
     .btn:active { transform: translateY(1px); }
@@ -192,6 +236,9 @@
       .field-grid, .inline-row, .inline-row.three, .mini-grid, .mini-grid.three { grid-template-columns: 1fr; }
       .quick-modes { grid-template-columns: repeat(2, 1fr); }
       .barcode-config-row { grid-template-columns: 1fr 1fr; }
+      .label-item-row { grid-template-columns: 34px 1fr; }
+      .label-item-row .item-controls, .label-item-row .item-meta { grid-column:2; }
+      .scope-card { grid-template-columns:1fr; }
       .actions { grid-template-columns: 1fr; }
       .preview-stage { min-height: 420px; padding: 24px 10px; place-items: start center; }
     }
@@ -205,14 +252,14 @@
       .print-label-page .label-paper { width: 100%; height: 100%; box-shadow: none; transform: none !important; }
     }
   </style>
-  <style id="pageStyle">@page { size: 80mm 80mm; margin: 0; }</style>
+  <style id="pageStyle">@page { size: 115mm 75mm; margin: 0; }</style>
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
       <div class="title-wrap">
         <h1>物料标签与条码打印工具</h1>
-        <p>按标签尺寸自由编排文字与条码；支持自定义编码规则、条码顺序、标题位置、PNG 导出与直接打印。</p>
+        <p>按参考模板生成物料标签；可拖拽调整项目顺序、隐藏说明区、自定义条码标题位置，并支持 PNG 导出与直接打印。</p>
       </div>
       <span class="offline-badge">单文件 · 可离线使用</span>
     </header>
@@ -227,7 +274,6 @@
             <button class="mode-btn" type="button" data-mode="batchBarcode">批次条码</button>
             <button class="mode-btn" type="button" data-mode="batchNo">批次号条码</button>
             <button class="mode-btn" type="button" data-mode="materialCode">物料编码</button>
-            <button class="mode-btn" type="button" data-mode="customerPartNo">客户料号</button>
             <button class="mode-btn" type="button" data-mode="custom">自定义内容</button>
           </div>
         </section>
@@ -235,131 +281,63 @@
         <section class="section">
           <div class="section-head"><h2 class="section-title">1. 基础数据</h2><span class="section-note">输入实际标签数据</span></div>
           <div class="field-grid">
-            <div class="field"><label class="field-label" for="materialCode">物料编码</label><input id="materialCode" type="text" value="3006177" autocomplete="off" /></div>
-            <div class="field"><label class="field-label" for="customerPartNo">客户料号</label><input id="customerPartNo" type="text" value="3006177" autocomplete="off" /></div>
-            <div class="field full"><label class="field-label" for="materialName">物料名称 / 工厂型号</label><input id="materialName" type="text" value="DTS-25R-V-B" autocomplete="off" /></div>
+            <div class="field"><label class="field-label" for="materialCode">物料编码</label><input id="materialCode" type="text" value="3006177" autocomplete="off" /><div class="hint">批次条码直接使用物料编码前 7 位。</div></div>
+            <div class="field"><label class="field-label" for="materialName">物料名称 / 工厂型号</label><input id="materialName" type="text" value="DTS-25R-V-B" autocomplete="off" /></div>
             <div class="field"><label class="field-label" for="productionDate">生产日期</label><input id="productionDate" type="date" /></div>
+            <div class="field"><label class="field-label" for="batchNo">批次号（自动）</label><input id="batchNo" type="text" readonly /></div>
             <div class="field"><label class="field-label" for="quantity">数量</label><input id="quantity" type="text" inputmode="numeric" value="500" autocomplete="off" /></div>
-            <div class="field"><label class="field-label" for="batchNo">批次号</label><input id="batchNo" type="text" readonly /></div>
             <div class="field"><label class="field-label" for="copies">打印份数</label><input id="copies" type="number" min="1" max="200" value="1" /></div>
           </div>
         </section>
 
         <section class="section">
-          <div class="section-head"><h2 class="section-title">2. 编码规则</h2><span class="section-note">默认规则可直接使用，也可改成自己的规则</span></div>
-          <div class="field-grid">
-            <div class="field">
-              <label class="field-label" for="batchNoMode">批次号生成方式</label>
-              <select id="batchNoMode">
-                <option value="yymmdd" selected>生产日期 YYMMDD</option>
-                <option value="yyyymmdd">生产日期 YYYYMMDD</option>
-                <option value="manual">手动输入</option>
-              </select>
-            </div>
-            <div class="field hidden" id="batchNoManualWrap"><label class="field-label" for="batchNoManual">手动批次号</label><input id="batchNoManual" type="text" placeholder="例如 LOT-260923" /></div>
+          <div class="section-head"><h2 class="section-title">2. 编码规则</h2><span class="section-note">默认就是你现在使用的规则</span></div>
+          <div class="rule-summary">
+            <div class="rule-summary-title">当前规则</div>
+            <div class="rule-summary-line">批次号 = 生产日期（年2位 + 月2位 + 日2位）</div>
+            <div class="rule-summary-line">批次条码 = 物料编码前 7 位 + 批次号</div>
+            <div class="rule-summary-value" id="batchBarcodeRuleValue"></div>
           </div>
-
-          <details class="config-group" open>
-            <summary>组合条码 / PC号规则</summary>
+          <details class="config-group">
+            <summary>高级：需要其他规则时再修改</summary>
             <div class="config-body">
               <div class="mini-grid">
-                <div class="field"><label class="field-label" for="batchBarcodeName">组合码名称</label><input id="batchBarcodeName" type="text" value="批次条码" /></div>
-                <div class="field"><label class="field-label" for="batchSeparator">A 与 B 之间分隔符</label><input id="batchSeparator" type="text" value="" placeholder="默认无分隔符" /></div>
-                <div class="field"><label class="field-label" for="batchPrefix">固定前缀</label><input id="batchPrefix" type="text" value="" placeholder="可留空" /></div>
-                <div class="field"><label class="field-label" for="batchSuffix">固定后缀</label><input id="batchSuffix" type="text" value="" placeholder="可留空" /></div>
-              </div>
-              <div class="mini-grid three" style="margin-top:9px">
-                <div class="field">
-                  <label class="field-label" for="batchSourceA">组成 A</label>
-                  <select id="batchSourceA"><option value="customerPartNo" selected>客户料号</option><option value="materialCode">物料编码</option><option value="batchNo">批次号</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select>
-                </div>
-                <div class="field"><label class="field-label" for="batchSourceALength">A 取前 N 位</label><input id="batchSourceALength" type="number" min="0" max="50" value="7" /><div class="hint">0 = 使用完整内容</div></div>
-                <div class="field"><label class="field-label" for="batchFixedA">A 固定文本</label><input id="batchFixedA" type="text" placeholder="仅组成A=固定文本时使用" /></div>
-                <div class="field">
-                  <label class="field-label" for="batchSourceB">组成 B</label>
-                  <select id="batchSourceB"><option value="batchNo" selected>批次号</option><option value="customerPartNo">客户料号</option><option value="materialCode">物料编码</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select>
-                </div>
-                <div class="field"><label class="field-label" for="batchSourceBLength">B 取前 N 位</label><input id="batchSourceBLength" type="number" min="0" max="50" value="0" /><div class="hint">0 = 使用完整内容</div></div>
-                <div class="field"><label class="field-label" for="batchFixedB">B 固定文本</label><input id="batchFixedB" type="text" placeholder="仅组成B=固定文本时使用" /></div>
-              </div>
-              <div class="formula-card">
-                <strong id="batchRuleTitle">批次条码规则预览</strong>
-                <div class="formula-value" id="batchBarcodeRuleValue"></div>
+                <div class="field"><label class="field-label" for="batchNoMode">批次号生成方式</label><select id="batchNoMode"><option value="yymmdd" selected>生产日期 YYMMDD</option><option value="yyyymmdd">生产日期 YYYYMMDD</option><option value="manual">手动输入</option></select></div>
+                <div class="field hidden" id="batchNoManualWrap"><label class="field-label" for="batchNoManual">手动批次号</label><input id="batchNoManual" type="text" /></div>
+                <div class="field"><label class="field-label" for="batchMaterialLength">批次条码取物料编码前 N 位</label><input id="batchMaterialLength" type="number" min="0" max="50" value="7" /></div>
+                <div class="field"><label class="field-label" for="batchSeparator">物料编码与批次号之间</label><input id="batchSeparator" type="text" value="" placeholder="默认直接连接" /></div>
+                <div class="field"><label class="field-label" for="batchPrefix">固定前缀</label><input id="batchPrefix" type="text" value="" /></div>
+                <div class="field"><label class="field-label" for="batchSuffix">固定后缀</label><input id="batchSuffix" type="text" value="" /></div>
               </div>
             </div>
           </details>
         </section>
 
         <section class="section" id="fullOptions">
-          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">版式、文字、条码都可独立配置</span></div>
-          <div class="field-grid">
-            <div class="field">
-              <label class="field-label" for="fullLayout">标签版式</label>
-              <select id="fullLayout">
-                <option value="auto" selected>自动：按标签宽高选择</option>
-                <option value="stack-bottom">上下：文字在上 / 条码在下</option>
-                <option value="stack-top">上下：条码在上 / 文字在下</option>
-                <option value="side-left">左右：条码在左 / 文字在右</option>
-                <option value="side-right">左右：文字在左 / 条码在右</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label" for="textDisplayMode">文字区显示</label>
-              <select id="textDisplayMode"><option value="nameValue" selected>字段名 + 内容</option><option value="valueOnly">只显示内容</option><option value="hidden">隐藏文字区，只显示条码</option></select>
-            </div>
+          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">默认按最后一张参考模板排版</span></div>
+          <label class="field-label">打印范围</label>
+          <div class="scope-card">
+            <label class="scope-option"><input type="radio" name="printScope" value="full" checked /><span><strong>主标签 + 标签说明</strong><span>打印左侧标签和右侧说明。</span></span></label>
+            <label class="scope-option"><input type="radio" name="printScope" value="main" /><span><strong>只打印主标签</strong><span>取消右侧说明区，主标签自动占满。</span></span></label>
           </div>
-
-          <details class="config-group">
-            <summary>文字字段与显示名称</summary>
-            <div class="config-body">
-              <div class="mini-grid">
-                <div class="field"><label class="check-item"><input id="showMaterialCode" type="checkbox" checked />物料编码</label><input id="labelMaterialCode" type="text" value="物料编码" /></div>
-                <div class="field"><label class="check-item"><input id="showCustomerPartNo" type="checkbox" />客户料号</label><input id="labelCustomerPartNo" type="text" value="客户料号" /></div>
-                <div class="field"><label class="check-item"><input id="showBatchNo" type="checkbox" checked />批次号</label><input id="labelBatchNo" type="text" value="批次号" /></div>
-                <div class="field"><label class="check-item"><input id="showMaterialName" type="checkbox" checked />物料名称</label><input id="labelMaterialName" type="text" value="物料名称" /></div>
-                <div class="field"><label class="check-item"><input id="showQuantity" type="checkbox" checked />数量</label><input id="labelQuantity" type="text" value="数量" /></div>
-              </div>
-              <div class="hint" style="margin-top:9px">字段名不再自动添加冒号。这里也可以改成“PC号”“工厂料号”等你自己的名称。</div>
-            </div>
-          </details>
-
+          <div class="field-grid">
+            <div class="field"><label class="field-label" for="notesTitle">右侧说明区标题</label><input id="notesTitle" type="text" value="标签说明" /></div>
+            <div class="field"><label class="field-label">条码数字</label><label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label></div>
+          </div>
           <details class="config-group" open>
-            <summary>条码列表：显示、名称、位置、顺序</summary>
+            <summary>主标签排版（按住 ⋮⋮ 上下拖动）</summary>
             <div class="config-body">
-              <div class="hint">每个条码都可以单独改标题、标题位置和排序。顺序数字越小越靠前。</div>
-              <div class="barcode-config-list">
-                <div class="barcode-config-row" data-barcode-row="quantity">
-                  <label class="enable-wrap"><input id="fullQuantityBarcode" type="checkbox" checked />数量条码</label>
-                  <div class="field"><label class="field-label" for="captionQuantity">显示名称</label><input id="captionQuantity" type="text" value="数量条码" /></div>
-                  <div class="field"><label class="field-label" for="captionPosQuantity">名称位置</label><select id="captionPosQuantity"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
-                  <div class="field"><label class="field-label" for="orderQuantity">顺序</label><input id="orderQuantity" type="number" min="1" max="9" value="1" /></div>
-                </div>
-                <div class="barcode-config-row" data-barcode-row="batchBarcode">
-                  <label class="enable-wrap"><input id="fullBatchBarcode" type="checkbox" checked />组合条码</label>
-                  <div class="field"><label class="field-label" for="captionBatchBarcode">显示名称</label><input id="captionBatchBarcode" type="text" value="批次条码" /></div>
-                  <div class="field"><label class="field-label" for="captionPosBatchBarcode">名称位置</label><select id="captionPosBatchBarcode"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
-                  <div class="field"><label class="field-label" for="orderBatchBarcode">顺序</label><input id="orderBatchBarcode" type="number" min="1" max="9" value="2" /></div>
-                </div>
-                <div class="barcode-config-row" data-barcode-row="batchNo">
-                  <label class="enable-wrap"><input id="fullBatchNoBarcode" type="checkbox" />批次号条码</label>
-                  <div class="field"><label class="field-label" for="captionBatchNo">显示名称</label><input id="captionBatchNo" type="text" value="批次号" /></div>
-                  <div class="field"><label class="field-label" for="captionPosBatchNo">名称位置</label><select id="captionPosBatchNo"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
-                  <div class="field"><label class="field-label" for="orderBatchNo">顺序</label><input id="orderBatchNo" type="number" min="1" max="9" value="3" /></div>
-                </div>
-                <div class="barcode-config-row" data-barcode-row="materialCode">
-                  <label class="enable-wrap"><input id="fullMaterialBarcode" type="checkbox" />物料编码条码</label>
-                  <div class="field"><label class="field-label" for="captionMaterial">显示名称</label><input id="captionMaterial" type="text" value="物料编码" /></div>
-                  <div class="field"><label class="field-label" for="captionPosMaterial">名称位置</label><select id="captionPosMaterial"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
-                  <div class="field"><label class="field-label" for="orderMaterial">顺序</label><input id="orderMaterial" type="number" min="1" max="9" value="4" /></div>
-                </div>
-                <div class="barcode-config-row" data-barcode-row="customerPartNo">
-                  <label class="enable-wrap"><input id="fullCustomerBarcode" type="checkbox" />客户料号条码</label>
-                  <div class="field"><label class="field-label" for="captionCustomer">显示名称</label><input id="captionCustomer" type="text" value="客户料号" /></div>
-                  <div class="field"><label class="field-label" for="captionPosCustomer">名称位置</label><select id="captionPosCustomer"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
-                  <div class="field"><label class="field-label" for="orderCustomer">顺序</label><input id="orderCustomer" type="number" min="1" max="9" value="5" /></div>
-                </div>
+              <div class="hint">拖动整行即可调整真正的打印顺序，不再填写顺序数字。</div>
+              <div class="label-item-list" id="labelItemsList">
+                <div class="label-item-row" draggable="true" data-item="materialText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialText" type="checkbox" checked />物料编码（文字）</label><div class="item-controls"><label class="field-label" for="labelMaterialCode">显示名称</label><input id="labelMaterialCode" type="text" value="物料编码" /></div><div class="item-meta">名称 + 物料编码</div></div>
+                <div class="label-item-row" draggable="true" data-item="materialBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialBarcode" type="checkbox" checked />物料编码条码</label><div class="item-controls inline"><div><label class="field-label" for="captionMaterial">条码标题</label><input id="captionMaterial" type="text" value="物料编码条形码" /></div><div><label class="field-label" for="captionPosMaterial">标题位置</label><select id="captionPosMaterial"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：物料编码</div></div>
+                <div class="label-item-row" draggable="true" data-item="batchText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchText" type="checkbox" checked />批次号（文字）</label><div class="item-controls"><label class="field-label" for="labelBatchNo">显示名称</label><input id="labelBatchNo" type="text" value="批次号" /></div><div class="item-meta">名称 + 批次号</div></div>
+                <div class="label-item-row" draggable="true" data-item="batchNoBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchNoBarcode" type="checkbox" checked />批次号条码</label><div class="item-controls inline"><div><label class="field-label" for="captionBatchNo">条码标题</label><input id="captionBatchNo" type="text" value="批次号条形码" /></div><div><label class="field-label" for="captionPosBatchNo">标题位置</label><select id="captionPosBatchNo"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：批次号</div></div>
+                <div class="label-item-row" draggable="true" data-item="materialNameText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialNameText" type="checkbox" checked />物料名称（文字）</label><div class="item-controls"><label class="field-label" for="labelMaterialName">显示名称</label><input id="labelMaterialName" type="text" value="物料名称" /></div><div class="item-meta">名称 + 工厂型号</div></div>
+                <div class="label-item-row" draggable="true" data-item="quantityText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemQuantityText" type="checkbox" checked />数量（文字）</label><div class="item-controls"><label class="field-label" for="labelQuantity">显示名称</label><input id="labelQuantity" type="text" value="数量" /></div><div class="item-meta">名称 + 数量</div></div>
+                <div class="label-item-row" draggable="true" data-item="quantityBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemQuantityBarcode" type="checkbox" checked />数量条码</label><div class="item-controls inline"><div><label class="field-label" for="captionQuantity">条码标题</label><input id="captionQuantity" type="text" value="数量条码" /></div><div><label class="field-label" for="captionPosQuantity">标题位置</label><select id="captionPosQuantity"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：数量</div></div>
+                <div class="label-item-row" draggable="true" data-item="batchBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchBarcode" type="checkbox" checked />批次条码</label><div class="item-controls inline"><div><label class="field-label" for="captionBatchBarcode">条码标题</label><input id="captionBatchBarcode" type="text" value="批次条码" /></div><div><label class="field-label" for="captionPosBatchBarcode">标题位置</label><select id="captionPosBatchBarcode"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：物料编码前7位 + 批次号</div></div>
               </div>
-              <div class="switch-row"><label class="check-item"><input id="fullShowText" type="checkbox" checked />显示条码下方的编码内容</label></div>
             </div>
           </details>
           <div class="quality-card" id="qualityCard">清晰度检查：等待预览。</div>
@@ -374,7 +352,6 @@
                 <option value="quantity">数量</option>
                 <option value="batchBarcode">批次条码</option>
                 <option value="materialCode">物料编码</option>
-                <option value="customerPartNo">客户料号</option>
                 <option value="batchNo">批次号</option>
                 <option value="materialName">物料名称</option>
                 <option value="productionDate">生产日期</option>
@@ -401,7 +378,7 @@
           <div class="switch-row">
             <label class="check-item"><input id="showTitle" type="checkbox" checked />显示标题</label>
             <label class="check-item"><input id="showHumanText" type="checkbox" checked />显示编码内容</label>
-            <label class="check-item"><input id="includeTitleInCode" type="checkbox" />二维码内容包含字段名</label>
+            <label class="check-item hidden" id="includeTitleQrWrap"><input id="includeTitleInCode" type="checkbox" />二维码扫码结果包含标题（例如“数量：500”）</label>
           </div>
           <div class="scan-card">
             <strong>实际编码内容（扫描后得到的内容）</strong>
@@ -419,16 +396,16 @@
                 <option value="50x30">50 × 30 mm</option>
                 <option value="60x40">60 × 40 mm</option>
                 <option value="70x50">70 × 50 mm</option>
-                <option value="80x80" selected>80 × 80 mm</option>
+                <option value="80x80">80 × 80 mm</option>
                 <option value="100x50">100 × 50 mm</option>
                 <option value="100x70">100 × 70 mm</option>
                 <option value="100x80">100 × 80 mm</option>
-                <option value="115x75">115 × 75 mm</option>
+                <option value="115x75" selected>115 × 75 mm</option>
                 <option value="custom">自定义</option>
               </select>
             </div>
-            <div class="field"><label class="field-label" for="labelWidth">宽度 mm</label><input id="labelWidth" type="number" min="20" max="250" step="1" value="80" /></div>
-            <div class="field"><label class="field-label" for="labelHeight">高度 mm</label><input id="labelHeight" type="number" min="15" max="250" step="1" value="80" /></div>
+            <div class="field"><label class="field-label" for="labelWidth">宽度 mm</label><input id="labelWidth" type="number" min="20" max="250" step="1" value="115" /></div>
+            <div class="field"><label class="field-label" for="labelHeight">高度 mm</label><input id="labelHeight" type="number" min="15" max="250" step="1" value="75" /></div>
           </div>
           <div class="inline-row" style="margin-top:10px">
             <div class="field"><label class="field-label" for="labelPadding">内边距 mm</label><input id="labelPadding" type="number" min="0" max="20" step="0.5" value="2" /></div>
@@ -447,7 +424,7 @@
             </div>
             <div class="field">
               <label class="field-label">边框</label>
-              <label class="check-item" style="height:40px"><input id="showBorder" type="checkbox" checked />打印标签外框</label>
+              <label class="check-item" style="height:40px"><input id="showBorder" type="checkbox" />打印标签外框</label>
             </div>
             <div class="field">
               <label class="field-label">操作</label>
@@ -466,7 +443,7 @@
       </div>
 
       <div class="panel preview-panel">
-        <div class="preview-toolbar"><strong>实时打印预览</strong><span id="sizeText">80 × 80 mm</span></div>
+        <div class="preview-toolbar"><strong>实时打印预览</strong><span id="sizeText">115 × 75 mm</span></div>
         <div class="preview-stage" id="previewStage">
           <div class="preview-wrap" id="previewWrap">
             <div class="label-paper with-border" id="previewLabel" aria-label="标签预览"><div class="label-inner" id="labelInner"></div></div>
@@ -495,7 +472,7 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v2';
+    const STORAGE_KEY = 'material-label-tool-v4';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), customerPartNo:$('customerPartNo'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
