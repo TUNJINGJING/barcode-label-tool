@@ -139,6 +139,21 @@
     .table-label.tiny .table-value { font-size:calc(var(--text-font) * .76); }
     .table-label.tiny .table-barcode .human-text { font-size:calc(var(--text-font) * .62); }
 
+    .portrait-label { width:100%; height:100%; min-height:0; display:grid; overflow:hidden; padding:.8mm 1.2mm; }
+    .portrait-text-row { min-height:0; display:grid; grid-template-columns:31% 69%; align-items:center; overflow:hidden; }
+    .portrait-key, .portrait-value { min-width:0; overflow:hidden; white-space:nowrap; line-height:1.05; }
+    .portrait-key { padding-right:1.3mm; font-size:calc(var(--text-font) * .82); font-weight:500; }
+    .portrait-value { font-size:var(--text-font); font-weight:500; }
+    .portrait-barcode-row { min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:.15mm 3mm .45mm; overflow:hidden; }
+    .portrait-barcode-row .barcode-graphic { width:var(--table-barcode-width); height:var(--table-barcode-height); max-height:100%; flex:1 1 0; min-height:0; }
+    .portrait-barcode-row .human-text { flex:0 0 auto; margin-top:.05mm; font-size:calc(var(--text-font) * .72); line-height:1; letter-spacing:.02em; text-align:center; }
+    .portrait-label.compact .portrait-key { font-size:calc(var(--text-font) * .74); }
+    .portrait-label.compact .portrait-value { font-size:calc(var(--text-font) * .90); }
+    .portrait-label.compact .portrait-barcode-row { padding-left:2mm; padding-right:2mm; }
+    .portrait-label.tiny .portrait-key { font-size:calc(var(--text-font) * .66); }
+    .portrait-label.tiny .portrait-value { font-size:calc(var(--text-font) * .80); }
+    .portrait-label.tiny .portrait-barcode-row .human-text { font-size:calc(var(--text-font) * .64); }
+
     .verify-card { padding:12px; border:1px solid #e4e7ec; border-radius:10px; background:#fcfcfd; }
     .verify-list { display:grid; gap:7px; margin-top:10px; }
     .verify-row { display:grid; grid-template-columns:minmax(90px,.75fr) minmax(130px,1.25fr) 72px; gap:8px; align-items:center; padding:8px 9px; border:1px solid #eaecf0; border-radius:8px; background:#fff; }
@@ -427,7 +442,7 @@
         </section>
 
         <section class="section">
-          <div class="section-head"><h2 class="section-title">预览与打印自定义</h2><span class="section-note">打印尺寸以毫米为准</span></div>
+          <div class="section-head"><h2 class="section-title">预览与打印自定义</h2><span class="section-note">横版自动用表格；交换成竖版后自动用经典排版</span></div>
           <div class="inline-row three">
             <div class="field">
               <div class="label-line"><label class="field-label" for="sizePreset">标签尺寸</label><span class="help-tip" tabindex="0" data-tip="选择实际标签纸尺寸。打印机纸张尺寸应与这里一致，否则可能缩放或裁切。">?</span></div>
@@ -476,7 +491,7 @@
               <select id="contentScale"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1" selected>100%</option><option value="1.1">110%</option><option value="1.2">120%</option></select>
             </div>
             <div class="field">
-              <div class="label-line"><label class="field-label" for="orientation">方向</label><span class="help-tip" tabindex="0" data-tip="交换标签宽度和高度，相当于横向 / 纵向切换。">?</span></div>
+              <div class="label-line"><label class="field-label" for="orientation">方向</label><span class="help-tip" tabindex="0" data-tip="横版（宽≥高）保留三列表格；竖版（高>宽）自动切换为参考图那种经典排版：文字一行、对应条码在下方。">?</span></div>
               <select id="orientation"><option value="normal">当前宽高</option><option value="swap">交换宽高</option></select>
             </div>
             <div class="field">
@@ -550,7 +565,7 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v9';
+    const STORAGE_KEY = 'material-label-tool-v10';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
@@ -805,6 +820,18 @@
       return ok;
     }
 
+    function fitPortraitText(label, basePt) {
+      let ok=true;
+      label.querySelectorAll('.portrait-key').forEach(el=>{
+        const keyBase=Math.max(6,(Number(basePt)||10)*.82);
+        ok=fitCellText(el,keyBase,5.5) && ok;
+      });
+      label.querySelectorAll('.portrait-value').forEach(el=>{
+        ok=fitCellText(el,basePt,6) && ok;
+      });
+      return ok;
+    }
+
     function code128ModuleCount(value) {
       try {
         const codes=encodeCode128(value);
@@ -818,8 +845,8 @@
       const modules=code128ModuleCount(value);
       if (!modules) return '';
       const innerWidth=Math.max(1,v.width-v.padding*2);
-      const barcodeCellWidth=Math.max(1,innerWidth*.58-2.8);
-      const printedWidth=barcodeCellWidth*(v.barcodeWidthPct/100);
+      const availableWidth=v.height>v.width ? Math.max(1,innerWidth-6) : Math.max(1,innerWidth*.58-2.8);
+      const printedWidth=availableWidth*(v.barcodeWidthPct/100);
       const moduleMm=printedWidth/modules;
       if (moduleMm < .25) {
         return '当前条码过密（最细模块约 '+moduleMm.toFixed(2)+' mm）。请增大标签宽度、减少编码长度，或把条码宽度设为 100%。为避免打印后无法扫码，系统已阻止打印和保存。';
@@ -827,7 +854,7 @@
       return '';
     }
 
-    function renderFull(v, host) {
+    function renderLandscapeTable(v, host) {
       const table=document.createElement('div'); table.className='table-label';
       const items=visibleItems(v);
       table.style.gridTemplateRows='repeat('+Math.max(items.length,1)+', minmax(0,1fr))';
@@ -845,8 +872,7 @@
             const densityIssue=barcodeDensityIssue(v,value);
             if (densityIssue) lastRenderError ||= (keyCell.textContent||key)+'：'+densityIssue;
             renderTableBarcode(value,barcodeCell);
-          }
-          catch(e) { lastRenderError ||= (keyCell.textContent||key)+'：'+e.message; }
+          } catch(e) { lastRenderError ||= (keyCell.textContent||key)+'：'+e.message; }
         } else {
           barcodeCell.classList.add('empty');
         }
@@ -870,6 +896,74 @@
           const status=$('status'); if (status) status.textContent=lastRenderError;
         }
       });
+    }
+
+    function renderPortraitClassic(v, host) {
+      const label=document.createElement('div'); label.className='portrait-label';
+      const items=visibleItems(v);
+      const blocks=[];
+
+      for (const {key,def} of items) {
+        const value=String(def.value(v)||'');
+        const showBarcode=$(def.barcode) && $(def.barcode).checked;
+
+        // 参考图里“批次条码”只显示最终条码，不再单独占一行文字。
+        if (key!=='batchBarcode' || !showBarcode) {
+          blocks.push({type:'text',key,def,value,weight:.72});
+        }
+        if (showBarcode) {
+          blocks.push({type:'barcode',key,def,value,weight:key==='batchBarcode'?1.25:1.18});
+        }
+      }
+
+      label.style.gridTemplateRows=blocks.length
+        ? blocks.map(b=>'minmax(0,'+b.weight+'fr)').join(' ')
+        : '1fr';
+
+      for (const block of blocks) {
+        if (block.type==='text') {
+          const row=document.createElement('div'); row.className='portrait-text-row';
+          const keyEl=document.createElement('div'); keyEl.className='portrait-key';
+          keyEl.textContent=fields[block.def.label] ? fields[block.def.label].value.trim() : '';
+          keyEl.title=keyEl.textContent;
+          const valueEl=document.createElement('div'); valueEl.className='portrait-value';
+          valueEl.textContent=block.value; valueEl.title=block.value;
+          row.append(keyEl,valueEl); label.appendChild(row);
+        } else {
+          const row=document.createElement('div'); row.className='portrait-barcode-row';
+          try {
+            const densityIssue=barcodeDensityIssue(v,block.value);
+            if (densityIssue) lastRenderError ||= ((fields[block.def.label]?.value.trim())||block.key)+'：'+densityIssue;
+            renderTableBarcode(block.value,row);
+          } catch(e) {
+            lastRenderError ||= ((fields[block.def.label]?.value.trim())||block.key)+'：'+e.message;
+          }
+          label.appendChild(row);
+        }
+      }
+
+      if (!blocks.length) {
+        const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少启用一个标签项目'; label.appendChild(empty);
+      }
+
+      const blockH=(v.height-v.padding*2)/Math.max(blocks.length,1);
+      if (blockH<8.5) label.classList.add('tiny');
+      else if (blockH<11) label.classList.add('compact');
+
+      host.appendChild(label);
+
+      requestAnimationFrame(()=>{
+        const allFit=fitPortraitText(label,v.textFont);
+        if (!allFit) {
+          lastRenderError ||= '有文字内容在当前竖版标签中仍然放不下。请缩短字段名称、减少显示项目或增大标签宽度后再打印。';
+          const status=$('status'); if (status) status.textContent=lastRenderError;
+        }
+      });
+    }
+
+    function renderFull(v, host) {
+      if (v.height>v.width) renderPortraitClassic(v,host);
+      else renderLandscapeTable(v,host);
     }
 
     function renderSingle(v, host) {
@@ -1061,8 +1155,12 @@
       updatePreview();
       const v=currentValues();
       const currentTable=$('labelInner').querySelector('.table-label');
+      const currentPortrait=$('labelInner').querySelector('.portrait-label');
       if (currentTable && !fitTableText(currentTable,v.textFont)) {
         lastRenderError ||= '有文字内容在当前标签尺寸下仍然放不下。请调整标签尺寸或字段名称后再打印。';
+      }
+      if (currentPortrait && !fitPortraitText(currentPortrait,v.textFont)) {
+        lastRenderError ||= '有文字内容在当前竖版标签中仍然放不下。请调整标签尺寸或字段名称后再打印。';
       }
       if (lastRenderError) throw new Error(lastRenderError);
       const sheet=$('printSheet'); sheet.replaceChildren();
@@ -1104,8 +1202,12 @@
       try {
         updatePreview();
         const fitTable=$('labelInner').querySelector('.table-label');
+        const fitPortrait=$('labelInner').querySelector('.portrait-label');
         if (fitTable && !fitTableText(fitTable,currentValues().textFont)) {
           lastRenderError ||= '有文字内容在当前标签尺寸下仍然放不下。请调整标签尺寸或字段名称后再保存。';
+        }
+        if (fitPortrait && !fitPortraitText(fitPortrait,currentValues().textFont)) {
+          lastRenderError ||= '有文字内容在当前竖版标签中仍然放不下。请调整标签尺寸或字段名称后再保存。';
         }
         if (lastRenderError) throw new Error(lastRenderError);
         if (typeof html2canvas !== 'function') throw new Error('图片导出组件未加载，请重新打开此 HTML 文件。');
