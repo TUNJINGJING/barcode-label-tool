@@ -330,7 +330,7 @@
             <summary>标签项目</summary>
             <div class="config-body">
               <div class="hint">按住左侧拖动柄，上下拖动调整打印顺序。</div>
-              <div class="table-config-head"><span></span><span>项目</span><span>显示名称</span><span>右侧条码</span></div>
+              <div class="table-config-head"><span></span><span>显示文字</span><span>显示名称</span><span>显示条码</span></div>
               <div class="label-item-list" id="labelItemsList">
                 <div class="label-item-row" data-item="materialCode">
                   <div class="drag-handle" title="拖动排序">⋮⋮</div>
@@ -524,7 +524,7 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v11';
+    const STORAGE_KEY = 'material-label-tool-v12';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
@@ -731,7 +731,12 @@
 
     function visibleItems(v) {
       return layoutItemKeys().map(key=>({key,def:ITEM_DEFS[key]}))
-        .filter(({def})=>def && $(def.enabled) && $(def.enabled).checked && String(def.value(v)||'').trim());
+        .filter(({def})=>{
+          if (!def || !String(def.value(v)||'').trim()) return false;
+          const showText=!!($(def.enabled) && $(def.enabled).checked);
+          const showBarcode=!!($(def.barcode) && $(def.barcode).checked);
+          return showText || showBarcode;
+        });
     }
 
     function renderTableBarcode(value,cell) {
@@ -816,11 +821,12 @@
 
       for (const {key,def} of items) {
         const row=document.createElement('div'); row.className='table-print-row';
+        const showText=!!($(def.enabled) && $(def.enabled).checked);
         const keyCell=document.createElement('div'); keyCell.className='table-cell table-key';
-        keyCell.textContent=fields[def.label] ? fields[def.label].value.trim() : '';
+        keyCell.textContent=showText && fields[def.label] ? fields[def.label].value.trim() : '';
         keyCell.title=keyCell.textContent;
         const valueCell=document.createElement('div'); valueCell.className='table-cell table-value';
-        const value=String(def.value(v)||''); valueCell.textContent=value; valueCell.title=value;
+        const value=String(def.value(v)||''); valueCell.textContent=showText ? value : ''; valueCell.title=showText ? value : '';
         const barcodeCell=document.createElement('div'); barcodeCell.className='table-cell table-barcode';
         if ($(def.barcode) && $(def.barcode).checked) {
           try {
@@ -860,9 +866,10 @@
 
       for (const {key,def} of items) {
         const value=String(def.value(v)||'');
-        const showBarcode=$(def.barcode) && $(def.barcode).checked;
+        const showText=!!($(def.enabled) && $(def.enabled).checked);
+        const showBarcode=!!($(def.barcode) && $(def.barcode).checked);
 
-        blocks.push({type:'text',key,def,value,weight:.72});
+        if (showText) blocks.push({type:'text',key,def,value,weight:.72});
         if (showBarcode) {
           blocks.push({type:'barcode',key,def,value,weight:key==='batchBarcode'?1.25:1.18});
         }
