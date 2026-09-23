@@ -1,1 +1,978 @@
-The requested file reference is not currently visible. Use files.search or files.list to rediscover the file, then retry with a returned ref_id or file_id.
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>物料标签与条码打印工具</title>
+  <style>
+    :root {
+      --label-w: 80mm;
+      --label-h: 80mm;
+      --label-pad: 2mm;
+      --barcode-h: 19mm;
+      --title-font: 13pt;
+      --text-font: 10pt;
+      --content-scale: 1;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --soft-line: #eaecf0;
+      --panel: #fff;
+      --bg: #f4f6f8;
+      --accent: #155eef;
+      --accent-soft: #eff4ff;
+      --danger: #b42318;
+      --success: #067647;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app-shell { width: min(1320px, calc(100% - 32px)); margin: 28px auto 50px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .title-wrap h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.2; letter-spacing: -.02em; }
+    .title-wrap p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+    .offline-badge { flex: none; padding: 7px 10px; border: 1px solid #b2ccff; border-radius: 999px; background: var(--accent-soft); color: #1849a9; font-size: 12px; font-weight: 700; }
+
+    .layout { display: grid; grid-template-columns: minmax(390px, .88fr) minmax(500px, 1.12fr); gap: 20px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid #e4e7ec; border-radius: 16px; box-shadow: 0 8px 28px rgba(16, 24, 40, .06); }
+    .form-panel { padding: 20px; }
+    .section { padding: 0 0 20px; margin-bottom: 20px; border-bottom: 1px solid var(--soft-line); }
+    .section:last-of-type { margin-bottom: 0; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    .section-title { margin: 0; font-size: 15px; font-weight: 750; }
+    .section-note { color: var(--muted); font-size: 11px; }
+
+    .quick-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+    .mode-btn { min-height: 40px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #344054; cursor: pointer; font-size: 12px; font-weight: 700; transition: .15s ease; }
+    .mode-btn:hover { border-color: #84adff; background: #f9fbff; }
+    .mode-btn.active { border-color: #528bff; background: var(--accent-soft); color: #1849a9; box-shadow: 0 0 0 2px rgba(21, 94, 239, .08); }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    label.field-label { display: block; margin-bottom: 6px; color: #344054; font-size: 12px; font-weight: 700; }
+    input[type="text"], input[type="date"], input[type="number"], select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #101828; outline: none; transition: .15s ease;
+    }
+    input[type="text"], input[type="date"], input[type="number"], select { height: 40px; padding: 0 11px; }
+    textarea { min-height: 76px; resize: vertical; padding: 10px 11px; line-height: 1.5; }
+    input:focus, select:focus, textarea:focus { border-color: #84adff; box-shadow: 0 0 0 3px rgba(21, 94, 239, .11); }
+    input[readonly] { background: #f9fafb; color: #475467; }
+    .hint { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+
+    .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 12px; }
+    .check-item { display: flex; align-items: center; gap: 8px; min-height: 30px; color: #344054; font-size: 12px; cursor: pointer; }
+    .check-item input { width: 16px; height: 16px; accent-color: var(--accent); }
+    .inline-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    .inline-row.three { grid-template-columns: 1.2fr .8fr .8fr; }
+
+    .switch-row { display: flex; flex-wrap: wrap; gap: 8px 15px; margin-top: 12px; }
+    .switch-row .check-item { min-height: 24px; }
+
+    .scan-card { margin-top: 13px; padding: 12px; border: 1px solid #d1e0ff; border-radius: 10px; background: #f5f8ff; }
+    .scan-card strong { display: block; margin-bottom: 6px; font-size: 12px; color: #1849a9; }
+    .scan-value { min-height: 38px; padding: 9px 10px; border: 1px solid #b2ccff; border-radius: 7px; background: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .scan-help { margin: 7px 0 0; color: #475467; font-size: 11px; line-height: 1.55; }
+    .formula-card { margin-top: 14px; padding: 12px; border: 1px solid #d9e3f4; border-radius: 12px; background: #f8fbff; }
+    .formula-card strong { display: block; margin-bottom: 8px; font-size: 12px; color: #1849a9; }
+    .formula-line { margin: 4px 0; color: #344054; font-size: 12px; line-height: 1.6; }
+    .formula-value { margin-top: 8px; padding: 9px 10px; border-radius: 8px; background: #fff; border: 1px solid #d9e3f4; color: #101828; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    details.config-group { margin-top: 12px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fcfcfd; }
+    details.config-group > summary { cursor: pointer; list-style: none; padding: 11px 12px; font-size: 12px; font-weight: 750; color: #344054; }
+    details.config-group > summary::-webkit-details-marker { display: none; }
+    details.config-group > summary::after { content: '展开'; float: right; color: var(--muted); font-weight: 500; }
+    details.config-group[open] > summary::after { content: '收起'; }
+    .config-body { padding: 0 12px 12px; }
+    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+    .mini-grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .barcode-config-list { display: grid; gap: 8px; margin-top: 10px; }
+    .barcode-config-row { display: grid; grid-template-columns: minmax(116px,1.15fr) minmax(92px,.9fr) minmax(74px,.7fr) 64px; gap: 8px; align-items: end; padding: 9px; border: 1px solid #e4e7ec; border-radius: 9px; background: #fff; }
+    .barcode-config-row .enable-wrap { display:flex; align-items:center; gap:7px; min-height:40px; font-size:12px; font-weight:700; }
+    .barcode-config-row input[type='checkbox'] { width:16px; height:16px; accent-color:var(--accent); }
+    .quality-card { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #f8fafc; border: 1px solid #e4e7ec; font-size: 11px; line-height: 1.55; color: #475467; }
+    .quality-card.ok { background: #ecfdf3; border-color: #abefc6; color: #067647; }
+    .quality-card.warn { background: #fffaeb; border-color: #fedf89; color: #b54708; }
+    .quality-card.bad { background: #fef3f2; border-color: #fecdca; color: #b42318; }
+
+    .actions { display: grid; grid-template-columns: 1.2fr 1fr .85fr .8fr; gap: 9px; margin-top: 18px; }
+    .btn { min-height: 43px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 750; transition: transform .08s ease, background .15s ease; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { color: #fff; background: var(--accent); }
+    .btn-primary:hover { background: #004eeb; }
+    .btn-secondary { color: #344054; background: #f2f4f7; }
+    .btn-secondary:hover { background: #e9edf2; }
+    .btn-outline { color: #175cd3; background: #eff4ff; }
+    .btn-outline:hover { background: #e0eaff; }
+    .status { min-height: 20px; margin-top: 10px; color: var(--danger); font-size: 12px; line-height: 1.5; }
+    .status.ok { color: var(--success); }
+
+    .preview-panel { overflow: hidden; position: sticky; top: 16px; }
+    .preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--soft-line); }
+    .preview-toolbar strong { font-size: 15px; }
+    .preview-toolbar span { color: var(--muted); font-size: 12px; }
+    .preview-stage { min-height: 650px; display: grid; place-items: center; padding: 34px; overflow: auto; background: linear-gradient(45deg,#f8fafc 25%,transparent 25%),linear-gradient(-45deg,#f8fafc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f8fafc 75%),linear-gradient(-45deg,transparent 75%,#f8fafc 75%),#eef1f5; background-size:24px 24px; background-position:0 0,0 12px,12px -12px,-12px 0; }
+    .preview-wrap { position: relative; flex: none; }
+
+    .label-paper {
+      width: var(--label-w); height: var(--label-h); padding: var(--label-pad); background: #fff; color: #000; overflow: hidden;
+      box-shadow: 0 13px 32px rgba(16,24,40,.2); font-family: Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
+      transform-origin: top left; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .label-paper.with-border { border: .25mm solid #111; }
+    .label-inner { width: 100%; height: 100%; transform: scale(var(--content-scale)); transform-origin: center; }
+
+    .full-label { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+    .full-label.layout-side-left, .full-label.layout-side-right { display: grid; grid-template-columns: minmax(0, var(--full-side-barcodes, 52%)) minmax(0, 1fr); gap: 1.1mm; align-items: stretch; }
+    .full-label.layout-side-right { grid-template-columns: minmax(0, 1fr) minmax(0, var(--full-side-barcodes, 52%)); }
+    .full-label.layout-side-left .field-table, .full-label.layout-side-right .field-table { height: 100%; }
+    .full-label.layout-side-left .full-barcodes, .full-label.layout-side-right .full-barcodes { height: 100%; margin-top: 0; }
+    .full-label.layout-stack-top .full-barcodes { margin-top: 0; margin-bottom: 1.1mm; }
+    .field-table { flex: none; display: grid; grid-auto-rows: minmax(0,1fr); border-top: .2mm solid #111; border-left: .2mm solid #111; overflow: hidden; }
+    .field-row { display: grid; grid-template-columns: 31% 69%; min-height: 0; border-right: .2mm solid #111; border-bottom: .2mm solid #111; }
+    .field-row.value-only { grid-template-columns: 1fr; }
+    .field-key, .field-value { min-width: 0; display: flex; align-items: center; padding: .6mm 1.1mm; font-size: var(--text-font); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .field-key { border-right: .2mm solid #111; font-weight: 600; }
+    .field-value { font-weight: 500; }
+    .full-label.fields-compact .field-key, .full-label.fields-compact .field-value { font-size: calc(var(--text-font) * .86); padding-top:.35mm; padding-bottom:.35mm; }
+    .full-label.fields-tiny .field-key, .full-label.fields-tiny .field-value { font-size: calc(var(--text-font) * .72); padding:.2mm .6mm; }
+    .full-barcodes { flex: 1; min-height: 0; display: grid; grid-auto-rows: minmax(0, 1fr); margin-top: 1.1mm; border: .2mm solid #111; overflow: hidden; }
+    .full-barcode-block { min-height: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: .4mm 1.6mm; overflow: hidden; border-bottom: .2mm solid #111; }
+    .full-barcode-block:last-child { border-bottom: 0; }
+    .barcode-main { flex: 1 1 0; min-height: 0; min-width: 0; display: grid; align-items: center; justify-items: center; overflow: hidden; }
+    .barcode-main.caption-top { grid-template-rows: auto minmax(0,1fr); grid-template-columns: 1fr; }
+    .barcode-main.caption-bottom { grid-template-rows: minmax(0,1fr) auto; grid-template-columns: 1fr; }
+    .barcode-main.caption-left { grid-template-columns: auto minmax(0,1fr); grid-template-rows: 1fr; column-gap: .8mm; }
+    .barcode-main.caption-right { grid-template-columns: minmax(0,1fr) auto; grid-template-rows: 1fr; column-gap: .8mm; }
+    .barcode-main.caption-none { grid-template: minmax(0,1fr) / 1fr; }
+    .code-caption { max-width: 100%; text-align: center; font-size: 7.5pt; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .barcode-main.caption-left .code-caption, .barcode-main.caption-right .code-caption { writing-mode: vertical-rl; text-orientation: mixed; max-height: 100%; }
+    .code-svg { display: block; width: 100%; max-width: 100%; overflow: hidden; }
+    .barcode-graphic { width: 100%; height: 100%; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .barcode-graphic .code-svg.linear { width: 100%; height: 100%; min-height: 0; max-height: 100%; }
+    .code-svg.qr { width: auto; height: 100%; max-height: 100%; aspect-ratio: 1; }
+    .human-text { flex: 0 0 auto; width: 100%; margin-top: .25mm; text-align: center; font-family: Arial, Helvetica, sans-serif; font-size: var(--text-font); line-height: 1.05; letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+    .full-barcodes.compact .code-caption { font-size: 6.5pt; }
+    .full-barcodes.compact .human-text { font-size: calc(var(--text-font) * .8); margin-top: .12mm; letter-spacing: .02em; }
+    .full-barcodes.compact .full-barcode-block { padding-top: .2mm; padding-bottom: .2mm; }
+    .full-barcodes.ultra-compact .code-caption { font-size: 5.5pt; }
+    .full-barcodes.ultra-compact .human-text { font-size: calc(var(--text-font) * .68); }
+    .full-barcodes.ultra-compact .full-barcode-block { padding:.12mm .9mm; }
+
+    .single-label { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; text-align: center; }
+    .single-title { width: 100%; margin-bottom: 2mm; font-size: var(--title-font); font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .single-code-zone { width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+    .single-code-zone.linear { height: var(--barcode-h); }
+    .single-code-zone.qr { flex: 1; }
+    .single-code-zone .code-svg.linear { width: 100%; height: 100%; }
+    .single-code-zone .code-svg.qr { height: 100%; width: auto; max-width: 100%; }
+    .single-human { width: 100%; margin-top: 2mm; font-size: var(--text-font); line-height: 1.2; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+    .empty-preview { display: grid; place-items: center; height: 100%; color: #667085; border: .3mm dashed #98a2b3; font-size: 11pt; text-align: center; padding: 6mm; }
+    .print-sheet { display: none; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .preview-panel { position: static; }
+      .preview-stage { min-height: 520px; }
+    }
+    @media (max-width: 600px) {
+      .app-shell { width: min(100% - 18px, 1320px); margin: 16px auto 32px; }
+      .topbar { display: block; }
+      .offline-badge { display: inline-block; margin-top: 12px; }
+      .field-grid, .inline-row, .inline-row.three, .mini-grid, .mini-grid.three { grid-template-columns: 1fr; }
+      .quick-modes { grid-template-columns: repeat(2, 1fr); }
+      .barcode-config-row { grid-template-columns: 1fr 1fr; }
+      .actions { grid-template-columns: 1fr; }
+      .preview-stage { min-height: 420px; padding: 24px 10px; place-items: start center; }
+    }
+
+    @media print {
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      .app-shell { display: none !important; }
+      .print-sheet { display: block !important; }
+      .print-label-page { width: var(--label-w); height: var(--label-h); margin: 0; padding: 0; overflow: hidden; break-after: page; page-break-after: always; }
+      .print-label-page:last-child { break-after: auto; page-break-after: auto; }
+      .print-label-page .label-paper { width: 100%; height: 100%; box-shadow: none; transform: none !important; }
+    }
+  </style>
+  <style id="pageStyle">@page { size: 80mm 80mm; margin: 0; }</style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1>物料标签与条码打印工具</h1>
+        <p>按标签尺寸自由编排文字与条码；支持自定义编码规则、条码顺序、标题位置、PNG 导出与直接打印。</p>
+      </div>
+      <span class="offline-badge">单文件 · 可离线使用</span>
+    </header>
+
+    <section class="layout">
+      <div class="panel form-panel">
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">快速选择打印内容</h2><span class="section-note">点击后立即预览</span></div>
+          <div class="quick-modes" id="quickModes">
+            <button class="mode-btn active" type="button" data-mode="full">整张标签</button>
+            <button class="mode-btn" type="button" data-mode="quantity">数量条码</button>
+            <button class="mode-btn" type="button" data-mode="batchBarcode">批次条码</button>
+            <button class="mode-btn" type="button" data-mode="batchNo">批次号条码</button>
+            <button class="mode-btn" type="button" data-mode="materialCode">物料编码</button>
+            <button class="mode-btn" type="button" data-mode="customerPartNo">客户料号</button>
+            <button class="mode-btn" type="button" data-mode="custom">自定义内容</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">1. 基础数据</h2><span class="section-note">输入实际标签数据</span></div>
+          <div class="field-grid">
+            <div class="field"><label class="field-label" for="materialCode">物料编码</label><input id="materialCode" type="text" value="3006177" autocomplete="off" /></div>
+            <div class="field"><label class="field-label" for="customerPartNo">客户料号</label><input id="customerPartNo" type="text" value="3006177" autocomplete="off" /></div>
+            <div class="field full"><label class="field-label" for="materialName">物料名称 / 工厂型号</label><input id="materialName" type="text" value="DTS-25R-V-B" autocomplete="off" /></div>
+            <div class="field"><label class="field-label" for="productionDate">生产日期</label><input id="productionDate" type="date" /></div>
+            <div class="field"><label class="field-label" for="quantity">数量</label><input id="quantity" type="text" inputmode="numeric" value="500" autocomplete="off" /></div>
+            <div class="field"><label class="field-label" for="batchNo">批次号</label><input id="batchNo" type="text" readonly /></div>
+            <div class="field"><label class="field-label" for="copies">打印份数</label><input id="copies" type="number" min="1" max="200" value="1" /></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">2. 编码规则</h2><span class="section-note">默认规则可直接使用，也可改成自己的规则</span></div>
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label" for="batchNoMode">批次号生成方式</label>
+              <select id="batchNoMode">
+                <option value="yymmdd" selected>生产日期 YYMMDD</option>
+                <option value="yyyymmdd">生产日期 YYYYMMDD</option>
+                <option value="manual">手动输入</option>
+              </select>
+            </div>
+            <div class="field hidden" id="batchNoManualWrap"><label class="field-label" for="batchNoManual">手动批次号</label><input id="batchNoManual" type="text" placeholder="例如 LOT-260923" /></div>
+          </div>
+
+          <details class="config-group" open>
+            <summary>组合条码 / PC号规则</summary>
+            <div class="config-body">
+              <div class="mini-grid">
+                <div class="field"><label class="field-label" for="batchBarcodeName">组合码名称</label><input id="batchBarcodeName" type="text" value="批次条码" /></div>
+                <div class="field"><label class="field-label" for="batchSeparator">A 与 B 之间分隔符</label><input id="batchSeparator" type="text" value="" placeholder="默认无分隔符" /></div>
+                <div class="field"><label class="field-label" for="batchPrefix">固定前缀</label><input id="batchPrefix" type="text" value="" placeholder="可留空" /></div>
+                <div class="field"><label class="field-label" for="batchSuffix">固定后缀</label><input id="batchSuffix" type="text" value="" placeholder="可留空" /></div>
+              </div>
+              <div class="mini-grid three" style="margin-top:9px">
+                <div class="field"><label class="field-label" for="batchSourceA">组成 A</label><select id="batchSourceA"><option value="customerPartNo" selected>客户料号</option><option value="materialCode">物料编码</option><option value="batchNo">批次号</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select></div>
+                <div class="field"><label class="field-label" for="batchSourceALength">A 取前 N 位</label><input id="batchSourceALength" type="number" min="0" max="50" value="7" /><div class="hint">0 = 使用完整内容</div></div>
+                <div class="field"><label class="field-label" for="batchFixedA">A 固定文本</label><input id="batchFixedA" type="text" placeholder="仅组成A=固定文本时使用" /></div>
+                <div class="field"><label class="field-label" for="batchSourceB">组成 B</label><select id="batchSourceB"><option value="batchNo" selected>批次号</option><option value="customerPartNo">客户料号</option><option value="materialCode">物料编码</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select></div>
+                <div class="field"><label class="field-label" for="batchSourceBLength">B 取前 N 位</label><input id="batchSourceBLength" type="number" min="0" max="50" value="0" /><div class="hint">0 = 使用完整内容</div></div>
+                <div class="field"><label class="field-label" for="batchFixedB">B 固定文本</label><input id="batchFixedB" type="text" placeholder="仅组成B=固定文本时使用" /></div>
+              </div>
+              <div class="formula-card">
+                <strong id="batchRuleTitle">批次条码规则预览</strong>
+                <div class="formula-value" id="batchBarcodeRuleValue"></div>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="fullOptions">
+          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">版式、文字、条码都可独立配置</span></div>
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label" for="fullLayout">标签版式</label>
+              <select id="fullLayout">
+                <option value="auto" selected>自动：按标签宽高选择</option>
+                <option value="stack-bottom">上下：文字在上 / 条码在下</option>
+                <option value="stack-top">上下：条码在上 / 文字在下</option>
+                <option value="side-left">左右：条码在左 / 文字在右</option>
+                <option value="side-right">左右：文字在左 / 条码在右</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="textDisplayMode">文字区显示</label>
+              <select id="textDisplayMode"><option value="nameValue" selected>字段名 + 内容</option><option value="valueOnly">只显示内容</option><option value="hidden">隐藏文字区，只显示条码</option></select>
+            </div>
+          </div>
+
+          <details class="config-group">
+            <summary>文字字段与显示名称</summary>
+            <div class="config-body">
+              <div class="mini-grid">
+                <div class="field"><label class="check-item"><input id="showMaterialCode" type="checkbox" checked />物料编码</label><input id="labelMaterialCode" type="text" value="物料编码" /></div>
+                <div class="field"><label class="check-item"><input id="showCustomerPartNo" type="checkbox" />客户料号</label><input id="labelCustomerPartNo" type="text" value="客户料号" /></div>
+                <div class="field"><label class="check-item"><input id="showBatchNo" type="checkbox" checked />批次号</label><input id="labelBatchNo" type="text" value="批次号" /></div>
+                <div class="field"><label class="check-item"><input id="showMaterialName" type="checkbox" checked />物料名称</label><input id="labelMaterialName" type="text" value="物料名称" /></div>
+                <div class="field"><label class="check-item"><input id="showQuantity" type="checkbox" checked />数量</label><input id="labelQuantity" type="text" value="数量" /></div>
+              </div>
+              <div class="hint" style="margin-top:9px">字段名不再自动添加冒号。这里也可以改成“PC号”“工厂料号”等你自己的名称。</div>
+            </div>
+          </details>
+
+          <details class="config-group" open>
+            <summary>条码列表：显示、名称、位置、顺序</summary>
+            <div class="config-body">
+              <div class="hint">每个条码都可以单独改标题、标题位置和排序。顺序数字越小越靠前。</div>
+              <div class="barcode-config-list">
+                <div class="barcode-config-row" data-barcode-row="quantity">
+                  <label class="enable-wrap"><input id="fullQuantityBarcode" type="checkbox" checked />数量条码</label>
+                  <div class="field"><label class="field-label" for="captionQuantity">显示名称</label><input id="captionQuantity" type="text" value="数量条码" /></div>
+                  <div class="field"><label class="field-label" for="captionPosQuantity">名称位置</label><select id="captionPosQuantity"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
+                  <div class="field"><label class="field-label" for="orderQuantity">顺序</label><input id="orderQuantity" type="number" min="1" max="9" value="1" /></div>
+                </div>
+                <div class="barcode-config-row" data-barcode-row="batchBarcode">
+                  <label class="enable-wrap"><input id="fullBatchBarcode" type="checkbox" checked />组合条码</label>
+                  <div class="field"><label class="field-label" for="captionBatchBarcode">显示名称</label><input id="captionBatchBarcode" type="text" value="批次条码" /></div>
+                  <div class="field"><label class="field-label" for="captionPosBatchBarcode">名称位置</label><select id="captionPosBatchBarcode"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
+                  <div class="field"><label class="field-label" for="orderBatchBarcode">顺序</label><input id="orderBatchBarcode" type="number" min="1" max="9" value="2" /></div>
+                </div>
+                <div class="barcode-config-row" data-barcode-row="batchNo">
+                  <label class="enable-wrap"><input id="fullBatchNoBarcode" type="checkbox" />批次号条码</label>
+                  <div class="field"><label class="field-label" for="captionBatchNo">显示名称</label><input id="captionBatchNo" type="text" value="批次号" /></div>
+                  <div class="field"><label class="field-label" for="captionPosBatchNo">名称位置</label><select id="captionPosBatchNo"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
+                  <div class="field"><label class="field-label" for="orderBatchNo">顺序</label><input id="orderBatchNo" type="number" min="1" max="9" value="3" /></div>
+                </div>
+                <div class="barcode-config-row" data-barcode-row="materialCode">
+                  <label class="enable-wrap"><input id="fullMaterialBarcode" type="checkbox" />物料编码条码</label>
+                  <div class="field"><label class="field-label" for="captionMaterial">显示名称</label><input id="captionMaterial" type="text" value="物料编码" /></div>
+                  <div class="field"><label class="field-label" for="captionPosMaterial">名称位置</label><select id="captionPosMaterial"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
+                  <div class="field"><label class="field-label" for="orderMaterial">顺序</label><input id="orderMaterial" type="number" min="1" max="9" value="4" /></div>
+                </div>
+                <div class="barcode-config-row" data-barcode-row="customerPartNo">
+                  <label class="enable-wrap"><input id="fullCustomerBarcode" type="checkbox" />客户料号条码</label>
+                  <div class="field"><label class="field-label" for="captionCustomer">显示名称</label><input id="captionCustomer" type="text" value="客户料号" /></div>
+                  <div class="field"><label class="field-label" for="captionPosCustomer">名称位置</label><select id="captionPosCustomer"><option value="top" selected>上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="none">不显示</option></select></div>
+                  <div class="field"><label class="field-label" for="orderCustomer">顺序</label><input id="orderCustomer" type="number" min="1" max="9" value="5" /></div>
+                </div>
+              </div>
+              <div class="switch-row"><label class="check-item"><input id="fullShowText" type="checkbox" checked />显示条码下方的编码内容</label></div>
+            </div>
+          </details>
+          <div class="quality-card" id="qualityCard">清晰度检查：等待预览。</div>
+        </section>
+
+        <section class="section hidden" id="singleOptions">
+          <div class="section-head"><h2 class="section-title">单独条码 / 二维码</h2><span class="section-note">扫描结果由“实际编码内容”决定</span></div>
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label" for="singleField">内容来源</label>
+              <select id="singleField">
+                <option value="quantity">数量</option>
+                <option value="batchBarcode">批次条码</option>
+                <option value="materialCode">物料编码</option>
+                <option value="customerPartNo">客户料号</option>
+                <option value="batchNo">批次号</option>
+                <option value="materialName">物料名称</option>
+                <option value="productionDate">生产日期</option>
+                <option value="summary">全部信息（适合二维码）</option>
+                <option value="custom">自定义内容</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="codeType">编码类型</label>
+              <select id="codeType">
+                <option value="code128">Code 128 条形码</option>
+                <option value="qr">二维码（微信推荐）</option>
+              </select>
+            </div>
+            <div class="field full hidden" id="customValueWrap">
+              <label class="field-label" for="customValue">自定义编码内容</label>
+              <textarea id="customValue" placeholder="输入希望扫描后看到的内容，例如：PO-2026-001"></textarea>
+            </div>
+            <div class="field full">
+              <label class="field-label" for="customTitle">显示标题</label>
+              <input id="customTitle" type="text" placeholder="留空则自动使用字段名称" />
+            </div>
+          </div>
+          <div class="switch-row">
+            <label class="check-item"><input id="showTitle" type="checkbox" checked />显示标题</label>
+            <label class="check-item"><input id="showHumanText" type="checkbox" checked />显示编码内容</label>
+            <label class="check-item"><input id="includeTitleInCode" type="checkbox" />二维码内容包含字段名</label>
+          </div>
+          <div class="scan-card">
+            <strong>实际编码内容（扫描后得到的内容）</strong>
+            <div class="scan-value" id="scanValue"></div>
+            <p class="scan-help" id="scanHelp">Code 128 扫描后通常只返回这一串字符。微信对一维码的处理可能因版本和内容而异；需要手机稳定显示文字时，建议改为二维码。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">预览与打印自定义</h2><span class="section-note">单位：毫米 / 磅</span></div>
+          <div class="inline-row three">
+            <div class="field">
+              <label class="field-label" for="sizePreset">标签尺寸</label>
+              <select id="sizePreset">
+                <option value="50x30">50 × 30 mm</option>
+                <option value="60x40">60 × 40 mm</option>
+                <option value="70x50">70 × 50 mm</option>
+                <option value="80x80" selected>80 × 80 mm</option>
+                <option value="100x50">100 × 50 mm</option>
+                <option value="100x70">100 × 70 mm</option>
+                <option value="100x80">100 × 80 mm</option>
+                <option value="115x75">115 × 75 mm</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label" for="labelWidth">宽度 mm</label><input id="labelWidth" type="number" min="20" max="250" step="1" value="80" /></div>
+            <div class="field"><label class="field-label" for="labelHeight">高度 mm</label><input id="labelHeight" type="number" min="15" max="250" step="1" value="80" /></div>
+          </div>
+          <div class="inline-row" style="margin-top:10px">
+            <div class="field"><label class="field-label" for="labelPadding">内边距 mm</label><input id="labelPadding" type="number" min="0" max="20" step="0.5" value="2" /></div>
+            <div class="field"><label class="field-label" for="barcodeHeight">条码高度 mm</label><input id="barcodeHeight" type="number" min="8" max="100" step="1" value="19" /></div>
+            <div class="field"><label class="field-label" for="titleFont">标题字号 pt</label><input id="titleFont" type="number" min="6" max="40" step="1" value="13" /></div>
+            <div class="field"><label class="field-label" for="textFont">内容字号 pt</label><input id="textFont" type="number" min="5" max="28" step="1" value="10" /></div>
+          </div>
+          <div class="inline-row" style="margin-top:10px">
+            <div class="field">
+              <label class="field-label" for="contentScale">内容缩放</label>
+              <select id="contentScale"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1" selected>100%</option><option value="1.1">110%</option><option value="1.2">120%</option></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="orientation">方向</label>
+              <select id="orientation"><option value="normal">当前宽高</option><option value="swap">交换宽高</option></select>
+            </div>
+            <div class="field">
+              <label class="field-label">边框</label>
+              <label class="check-item" style="height:40px"><input id="showBorder" type="checkbox" checked />打印标签外框</label>
+            </div>
+            <div class="field">
+              <label class="field-label">操作</label>
+              <button class="btn btn-secondary" id="swapBtn" type="button" style="width:100%;min-height:40px">交换宽高</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="printBtn" type="button">打印当前预览</button>
+          <button class="btn btn-outline" id="saveImageBtn" type="button">保存预览 PNG</button>
+          <button class="btn btn-outline" id="copyBtn" type="button">复制编码内容</button>
+          <button class="btn btn-secondary" id="resetBtn" type="button">恢复示例</button>
+        </div>
+        <div class="status" id="status" role="status"></div>
+      </div>
+
+      <div class="panel preview-panel">
+        <div class="preview-toolbar"><strong>实时打印预览</strong><span id="sizeText">80 × 80 mm</span></div>
+        <div class="preview-stage" id="previewStage">
+          <div class="preview-wrap" id="previewWrap">
+            <div class="label-paper with-border" id="previewLabel" aria-label="标签预览"><div class="label-inner" id="labelInner"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="print-sheet" id="printSheet"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    const CODE128_PATTERNS = [
+      'BaBbBb','BbBaBb','BbBbBa','AbAbBc','AbAcBb','AcAbBb','AbBbAc','AbBcAb','AcBbAb','BbAbAc','BbAcAb','BcAbAb',
+      'AaBbCb','AbBaCb','AbBbCa','AaCbBb','AbCaBb','AbCbBa','BbCbAa','BbAaCb','BbAbCa','BaCbAb','BbCaAb','CaBaCa',
+      'CaAbBb','CbAaBb','CbAbBa','CaBbAb','CbBaAb','CbBbAa','BaBaBc','BaBcBa','BcBaBa','AaAcBc','AcAaBc','AcAcBa',
+      'AaBcAc','AcBaAc','AcBcAa','BaAcAc','BcAaAc','BcAcAa','AaBaCc','AaBcCa','AcBaCa','AaCaBc','AaCcBa','AcCaBa',
+      'CaCaBa','BaAcCa','BcAaCa','BaCaAc','BaCcAa','BaCaCa','CaAaBc','CaAcBa','CcAaBa','CaBaAc','CaBcAa','CcBaAa',
+      'CaDaAa','BbAdAa','DcAaAa','AaAbBd','AaAdBb','AbAaBd','AbAdBa','AdAaBb','AdAbBa','AaBbAd','AaBdAb','AbBaAd',
+      'AbBdAa','AdBaAb','AdBbAa','BdAbAa','BbAaAd','DaCaAa','BdAaAb','AcDaAa','AaAbDb','AbAaDb','AbAbDa','AaDbAb',
+      'AbDaAb','AbDbAa','DaAbAb','DbAaAb','DbAbAa','BaBaDa','BaDaBa','DaBaBa','AaAaDc','AaAcDa','AcAaDa','AaDaAc',
+      'AaDcAa','DaAaAc','DaAcAa','AaCaDa','AaDaCa','CaAaDa','DaAaCa','BaAdAb','BaAbAd','BaAbCb','BcCaAaB'
+    ];
+
+    const $ = id => document.getElementById(id);
+    const qsa = sel => Array.from(document.querySelectorAll(sel));
+    const STORAGE_KEY = 'material-label-tool-v2';
+    const MM_TO_PX = 96 / 25.4;
+
+    const fields = {
+      materialCode:$('materialCode'), customerPartNo:$('customerPartNo'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
+      batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchBarcodeName:$('batchBarcodeName'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'), batchSourceA:$('batchSourceA'), batchSourceALength:$('batchSourceALength'), batchFixedA:$('batchFixedA'), batchSourceB:$('batchSourceB'), batchSourceBLength:$('batchSourceBLength'), batchFixedB:$('batchFixedB'),
+      fullLayout:$('fullLayout'), textDisplayMode:$('textDisplayMode'),
+      labelMaterialCode:$('labelMaterialCode'), labelCustomerPartNo:$('labelCustomerPartNo'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
+      captionQuantity:$('captionQuantity'), captionBatchBarcode:$('captionBatchBarcode'), captionBatchNo:$('captionBatchNo'), captionMaterial:$('captionMaterial'), captionCustomer:$('captionCustomer'),
+      captionPosQuantity:$('captionPosQuantity'), captionPosBatchBarcode:$('captionPosBatchBarcode'), captionPosBatchNo:$('captionPosBatchNo'), captionPosMaterial:$('captionPosMaterial'), captionPosCustomer:$('captionPosCustomer'),
+      orderQuantity:$('orderQuantity'), orderBatchBarcode:$('orderBatchBarcode'), orderBatchNo:$('orderBatchNo'), orderMaterial:$('orderMaterial'), orderCustomer:$('orderCustomer'),
+      singleField:$('singleField'), codeType:$('codeType'), customValue:$('customValue'), customTitle:$('customTitle'),
+      sizePreset:$('sizePreset'), labelWidth:$('labelWidth'), labelHeight:$('labelHeight'), labelPadding:$('labelPadding'), barcodeHeight:$('barcodeHeight'), titleFont:$('titleFont'), textFont:$('textFont'), contentScale:$('contentScale'), orientation:$('orientation')
+    };
+
+    let stateMode = 'full';
+    let lastRenderError = '';
+
+    function clamp(n, min, max, fallback) { n = Number(n); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback; }
+    function localDateISO(date = new Date()) { const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
+    function formatDateCode(iso, mode='yymmdd') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return '';
+      const y=iso.slice(0,4), m=iso.slice(5,7), d=iso.slice(8,10);
+      return mode==='yyyymmdd' ? y+m+d : y.slice(2)+m+d;
+    }
+    function sourceValue(source, v, fixed='') {
+      if (source==='customerPartNo') return v.customerPartNo;
+      if (source==='materialCode') return v.materialCode;
+      if (source==='batchNo') return v.batchNo;
+      if (source==='quantity') return v.quantity;
+      if (source==='fixed') return fixed;
+      return '';
+    }
+    function sliceFirst(value, n) { n=Number(n)||0; value=String(value||''); return n>0 ? value.slice(0,n) : value; }
+    function sanitizeAscii(value) { return String(value ?? '').replace(/[^\x20-\x7E]/g, ''); }
+    function setText(id, value) { $(id).textContent = value ?? ''; }
+
+    function encodeCode128(value) {
+      value = String(value ?? '');
+      if (!value) throw new Error('条码内容不能为空');
+      const clean = sanitizeAscii(value);
+      if (clean !== value) throw new Error('Code 128 仅支持英文、数字及半角符号；中文请使用二维码');
+      const codes = [];
+      if (/^\d{4,}$/.test(value)) {
+        if (value.length % 2 === 0) {
+          codes.push(105);
+          for (let i=0;i<value.length;i+=2) codes.push(Number(value.slice(i,i+2)));
+        } else {
+          codes.push(104, value.charCodeAt(0)-32, 99);
+          for (let i=1;i<value.length;i+=2) codes.push(Number(value.slice(i,i+2)));
+        }
+      } else {
+        codes.push(104);
+        for (const ch of value) {
+          const code = ch.charCodeAt(0)-32;
+          if (code < 0 || code > 94) throw new Error('条码包含不支持的字符');
+          codes.push(code);
+        }
+      }
+      let checksum = codes[0];
+      for (let i=1;i<codes.length;i++) checksum += codes[i]*i;
+      checksum %= 103;
+      return [...codes, checksum, 106];
+    }
+
+    function renderCode128(svg, value) {
+      svg.replaceChildren();
+      const codes = encodeCode128(value);
+      const quiet = 11, barHeight = 64;
+      let total = quiet * 2;
+      for (const code of codes) for (const symbol of CODE128_PATTERNS[code]) total += symbol.toLowerCase().charCodeAt(0)-96;
+      svg.setAttribute('viewBox', `0 0 ${total} ${barHeight}`);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svg.setAttribute('shape-rendering', 'crispEdges');
+      const ns='http://www.w3.org/2000/svg';
+      let x=quiet;
+      for (const code of codes) {
+        for (const symbol of CODE128_PATTERNS[code]) {
+          const width=symbol.toLowerCase().charCodeAt(0)-96;
+          if (symbol===symbol.toUpperCase()) {
+            const rect=document.createElementNS(ns,'rect');
+            rect.setAttribute('x',x); rect.setAttribute('y',0); rect.setAttribute('width',width); rect.setAttribute('height',barHeight); rect.setAttribute('fill','#000'); svg.appendChild(rect);
+          }
+          x+=width;
+        }
+      }
+    }
+
+    function utf8BinaryString(text) {
+      const bytes = new TextEncoder().encode(String(text));
+      let out='';
+      for (const b of bytes) out += String.fromCharCode(b);
+      return out;
+    }
+
+    function renderQR(svg, value) {
+      svg.replaceChildren();
+      value = String(value ?? '');
+      if (!value) throw new Error('二维码内容不能为空');
+      const qr = qrcode(0, 'M');
+      qr.addData(utf8BinaryString(value));
+      qr.make();
+      const count=qr.getModuleCount(), quiet=4, size=count+quiet*2;
+      svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+      svg.setAttribute('shape-rendering','crispEdges');
+      const ns='http://www.w3.org/2000/svg';
+      const bg=document.createElementNS(ns,'rect'); bg.setAttribute('x',0); bg.setAttribute('y',0); bg.setAttribute('width',size); bg.setAttribute('height',size); bg.setAttribute('fill','#fff'); svg.appendChild(bg);
+      const path=document.createElementNS(ns,'path'); let d='';
+      for (let r=0;r<count;r++) for (let c=0;c<count;c++) if (qr.isDark(r,c)) d += `M${c+quiet} ${r+quiet}h1v1h-1z`;
+      path.setAttribute('d',d); path.setAttribute('fill','#000'); svg.appendChild(path);
+    }
+
+    function currentValues() {
+      const materialCode=fields.materialCode.value.trim();
+      const customerPartNo=fields.customerPartNo.value.trim();
+      const materialName=fields.materialName.value.trim();
+      const productionDate=fields.productionDate.value;
+      const quantity=fields.quantity.value.trim();
+      const batchMode=fields.batchNoMode.value;
+      const batchNo=batchMode==='manual' ? fields.batchNoManual.value.trim() : formatDateCode(productionDate,batchMode);
+      const base={materialCode,customerPartNo,materialName,productionDate,quantity,batchNo};
+      const a=sliceFirst(sourceValue(fields.batchSourceA.value,base,fields.batchFixedA.value), fields.batchSourceALength.value);
+      const b=sliceFirst(sourceValue(fields.batchSourceB.value,base,fields.batchFixedB.value), fields.batchSourceBLength.value);
+      const middle=(a && b) ? fields.batchSeparator.value : '';
+      const batchBarcode=`${fields.batchPrefix.value}${a}${middle}${b}${fields.batchSuffix.value}`.trim();
+      let width=clamp(fields.labelWidth.value,20,250,80), height=clamp(fields.labelHeight.value,15,250,80);
+      if (fields.orientation.value==='swap') [width,height]=[height,width];
+      return { materialCode,customerPartNo,materialName,productionDate,batchNo,quantity,batchBarcode,batchBarcodeName:fields.batchBarcodeName.value.trim()||'组合条码',width,height,
+        copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1), fullLayout:fields.fullLayout.value||'auto', textDisplayMode:fields.textDisplayMode.value||'nameValue' };
+    }
+
+    const FIELD_META = {
+      quantity: ['数量', v=>v.quantity], batchBarcode: ['批次条码', v=>v.batchBarcode], materialCode: ['物料编码', v=>v.materialCode], customerPartNo: ['客户料号', v=>v.customerPartNo], batchNo: ['批次号', v=>v.batchNo], materialName: ['物料名称', v=>v.materialName], productionDate: ['生产日期', v=>v.productionDate]
+    };
+
+    function summaryText(v) {
+      return [`${fields.labelMaterialCode.value||'物料编码'}：${v.materialCode}`,`${fields.labelCustomerPartNo.value||'客户料号'}：${v.customerPartNo}`,`${fields.labelBatchNo.value||'批次号'}：${v.batchNo}`,`${fields.labelMaterialName.value||'物料名称'}：${v.materialName}`,`${fields.labelQuantity.value||'数量'}：${v.quantity}`,`${v.batchBarcodeName}：${v.batchBarcode}`].join('\n');
+    }
+
+    function updateBatchRuleDisplay(v) {
+      $('batchNo').readOnly = fields.batchNoMode.value !== 'manual';
+      $('batchNoManualWrap').classList.toggle('hidden', fields.batchNoMode.value !== 'manual');
+      fields.batchNo.value = v.batchNo;
+      setText('batchRuleTitle', `${v.batchBarcodeName}规则预览`);
+      const aName=fields.batchSourceA.options[fields.batchSourceA.selectedIndex]?.text || '';
+      const bName=fields.batchSourceB.options[fields.batchSourceB.selectedIndex]?.text || '';
+      const nA=Number(fields.batchSourceALength.value)||0, nB=Number(fields.batchSourceBLength.value)||0;
+      const descA=fields.batchSourceA.value==='none'?'无':`${aName}${nA>0?`前${nA}位`:''}`;
+      const descB=fields.batchSourceB.value==='none'?'无':`${bName}${nB>0?`前${nB}位`:''}`;
+      const parts=[];
+      if (fields.batchPrefix.value) parts.push(`前缀「${fields.batchPrefix.value}」`);
+      if (fields.batchSourceA.value!=='none') parts.push(descA);
+      if (fields.batchSeparator.value && fields.batchSourceA.value!=='none' && fields.batchSourceB.value!=='none') parts.push(`分隔符「${fields.batchSeparator.value}」`);
+      if (fields.batchSourceB.value!=='none') parts.push(descB);
+      if (fields.batchSuffix.value) parts.push(`后缀「${fields.batchSuffix.value}」`);
+      setText('batchBarcodeRuleValue', `${parts.join(' + ') || '空规则'} → ${v.batchBarcode || '（暂未生成）'}`);
+      fields.captionBatchBarcode.placeholder=v.batchBarcodeName;
+    }
+
+    function singleInfo(v) {
+      const key=fields.singleField.value;
+      let title='', raw='';
+      if (key==='custom') { title='自定义内容'; raw=fields.customValue.value; }
+      else if (key==='summary') { title='物料标签信息'; raw=summaryText(v); }
+      else { const meta=FIELD_META[key] || FIELD_META.quantity; title=key==='batchBarcode' ? v.batchBarcodeName : meta[0]; raw=meta[1](v); }
+      title=fields.customTitle.value.trim() || title;
+      let encoded=String(raw ?? '');
+      if ($('includeTitleInCode').checked && fields.codeType.value==='qr') encoded=`${title}：${encoded}`;
+      return { key, title, raw:String(raw ?? ''), encoded };
+    }
+
+    function setCssVars(v) {
+      const root=document.documentElement;
+      root.style.setProperty('--label-w',`${v.width}mm`); root.style.setProperty('--label-h',`${v.height}mm`); root.style.setProperty('--label-pad',`${v.padding}mm`); root.style.setProperty('--barcode-h',`${v.barcodeHeight}mm`); root.style.setProperty('--title-font',`${v.titleFont}pt`); root.style.setProperty('--text-font',`${v.textFont}pt`); root.style.setProperty('--content-scale',String(v.scale));
+      $('pageStyle').textContent=`@page { size: ${v.width}mm ${v.height}mm; margin: 0; }`;
+      setText('sizeText',`${v.width} × ${v.height} mm · ${stateMode==='full'?'整张标签':'单独编码'}`);
+    }
+
+    function makeSvg(kind='linear') { const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.classList.add('code-svg',kind); return svg; }
+    function makeFieldRow(key,value,mode='nameValue') {
+      const row=document.createElement('div'); row.className='field-row';
+      if (mode==='valueOnly') { row.classList.add('value-only'); const b=document.createElement('div'); b.className='field-value'; b.textContent=value||''; row.appendChild(b); return row; }
+      const a=document.createElement('div'); a.className='field-key'; a.textContent=key||'';
+      const b=document.createElement('div'); b.className='field-value'; b.textContent=value||'';
+      row.append(a,b); return row;
+    }
+
+    function barcodeSpecList(v) {
+      const rows=[
+        {key:'quantity', enabled:$('fullQuantityBarcode').checked, title:fields.captionQuantity.value.trim()||'数量条码', value:v.quantity, pos:fields.captionPosQuantity.value, order:Number(fields.orderQuantity.value)||1},
+        {key:'batchBarcode', enabled:$('fullBatchBarcode').checked, title:fields.captionBatchBarcode.value.trim()||v.batchBarcodeName, value:v.batchBarcode, pos:fields.captionPosBatchBarcode.value, order:Number(fields.orderBatchBarcode.value)||2},
+        {key:'batchNo', enabled:$('fullBatchNoBarcode').checked, title:fields.captionBatchNo.value.trim()||'批次号', value:v.batchNo, pos:fields.captionPosBatchNo.value, order:Number(fields.orderBatchNo.value)||3},
+        {key:'materialCode', enabled:$('fullMaterialBarcode').checked, title:fields.captionMaterial.value.trim()||'物料编码', value:v.materialCode, pos:fields.captionPosMaterial.value, order:Number(fields.orderMaterial.value)||4},
+        {key:'customerPartNo', enabled:$('fullCustomerBarcode').checked, title:fields.captionCustomer.value.trim()||'客户料号', value:v.customerPartNo, pos:fields.captionPosCustomer.value, order:Number(fields.orderCustomer.value)||5}
+      ];
+      return rows.filter(x=>x.enabled && String(x.value||'').trim()).sort((a,b)=>a.order-b.order);
+    }
+
+    function resolveFullLayout(v, hasText, hasBars) {
+      if (!hasText) return 'barcode-only';
+      if (!hasBars) return 'text-only';
+      if (v.fullLayout !== 'auto') return v.fullLayout;
+      return v.width / Math.max(v.height,1) >= 1.28 ? 'side-left' : 'stack-bottom';
+    }
+
+    function makeBarcodeMain(spec) {
+      const main=document.createElement('div'); main.className=`barcode-main caption-${spec.pos||'top'}`;
+      const graphic=document.createElement('div'); graphic.className='barcode-graphic';
+      const svg=makeSvg('linear'); graphic.appendChild(svg);
+      const cap=document.createElement('div'); cap.className='code-caption'; cap.textContent=spec.title;
+      if (spec.pos==='bottom' || spec.pos==='right') { main.append(graphic,cap); }
+      else if (spec.pos==='none') { main.appendChild(graphic); }
+      else { main.append(cap,graphic); }
+      return {main,svg};
+    }
+
+    function renderFull(v, host) {
+      const full=document.createElement('div'); full.className='full-label';
+      const textMode=v.textDisplayMode;
+      const table=document.createElement('div'); table.className='field-table';
+      let textRowCount=0;
+      const rows=[
+        ['showMaterialCode', fields.labelMaterialCode.value.trim()||'物料编码', v.materialCode],
+        ['showCustomerPartNo', fields.labelCustomerPartNo.value.trim()||'客户料号', v.customerPartNo],
+        ['showBatchNo', fields.labelBatchNo.value.trim()||'批次号', v.batchNo],
+        ['showMaterialName', fields.labelMaterialName.value.trim()||'物料名称', v.materialName],
+        ['showQuantity', fields.labelQuantity.value.trim()||'数量', v.quantity]
+      ];
+      if (textMode!=='hidden') for (const [id,label,value] of rows) if ($(id).checked) { table.appendChild(makeFieldRow(label,value,textMode)); textRowCount++; }
+
+      const specs=barcodeSpecList(v);
+      let barcodes=null;
+      if (specs.length) {
+        barcodes=document.createElement('div'); barcodes.className='full-barcodes';
+        barcodes.style.gridTemplateRows=`repeat(${specs.length}, minmax(0,1fr))`;
+        for (const spec of specs) {
+          const block=document.createElement('div'); block.className='full-barcode-block';
+          const {main,svg}=makeBarcodeMain(spec); block.appendChild(main);
+          if ($('fullShowText').checked) { const txt=document.createElement('div'); txt.className='human-text'; txt.textContent=spec.value; block.appendChild(txt); }
+          try { renderCode128(svg,spec.value); } catch(e) { lastRenderError ||= `${spec.title}：${e.message}`; }
+          barcodes.appendChild(block);
+        }
+      }
+
+      const layout=resolveFullLayout(v,textRowCount>0,specs.length>0);
+      if (layout==='side-left') full.classList.add('layout-side-left');
+      if (layout==='side-right') full.classList.add('layout-side-right');
+      if (layout==='stack-top') full.classList.add('layout-stack-top');
+
+      if (layout.startsWith('side')) {
+        let barcodeWidth=v.width>=v.height?50:56;
+        if (specs.length>=4) barcodeWidth+=5;
+        barcodeWidth=Math.max(44,Math.min(64,barcodeWidth));
+        full.style.setProperty('--full-side-barcodes',`${barcodeWidth}%`);
+        if (table && textRowCount) table.style.height='100%';
+        if (layout==='side-left') { if (barcodes) full.appendChild(barcodes); if (textRowCount) full.appendChild(table); }
+        else { if (textRowCount) full.appendChild(table); if (barcodes) full.appendChild(barcodes); }
+      } else if (layout==='stack-top') {
+        if (barcodes) full.appendChild(barcodes);
+        if (textRowCount) { const h=specs.length?Math.min(v.height*.48,textRowCount*8):v.height; table.style.height=`${h}mm`; full.appendChild(table); }
+      } else if (layout==='barcode-only') {
+        if (barcodes) full.appendChild(barcodes);
+      } else if (layout==='text-only') {
+        if (textRowCount) { table.style.height='100%'; full.appendChild(table); }
+      } else {
+        if (textRowCount) { const h=specs.length?Math.min(v.height*.48,textRowCount*8):v.height; table.style.height=`${h}mm`; full.appendChild(table); }
+        if (barcodes) full.appendChild(barcodes);
+      }
+
+      const estimatedTextRowH=textRowCount ? (layout.startsWith('side') ? v.height/textRowCount : Math.min(v.height*.48,textRowCount*8)/textRowCount) : 99;
+      if (estimatedTextRowH<6.2) full.classList.add('fields-tiny'); else if (estimatedTextRowH<8) full.classList.add('fields-compact');
+      const barcodeRowH=specs.length ? (layout.startsWith('side')||layout==='barcode-only' ? v.height/specs.length : (v.height-(textRowCount?Math.min(v.height*.48,textRowCount*8):0))/specs.length) : 99;
+      if (barcodeRowH<10 || specs.length>=4) barcodes?.classList.add('ultra-compact'); else if (barcodeRowH<15 || specs.length>=3) barcodes?.classList.add('compact');
+
+      if (!full.children.length) { const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少选择一个文字字段或条码'; full.appendChild(empty); }
+      host.appendChild(full);
+      updateQualityCard(v,specs,layout,textRowCount,barcodeRowH);
+    }
+
+    function code128Modules(value) {
+      try { const codes=encodeCode128(value); let total=22; for (const code of codes) for (const symbol of CODE128_PATTERNS[code]) total += symbol.toLowerCase().charCodeAt(0)-96; return total; } catch(_) { return 0; }
+    }
+
+    function updateQualityCard(v,specs,layout,textRows,barcodeRowH) {
+      const card=$('qualityCard'); if (!card) return;
+      if (!specs.length) { card.className='quality-card'; card.textContent='清晰度检查：当前没有启用条码。'; return; }
+      const side=layout.startsWith('side');
+      const barcodeWidthMm=side ? v.width*(specs.length>=4?.55:.5)-v.padding*2 : v.width-v.padding*2;
+      let minModule=Infinity;
+      for (const spec of specs) { const modules=code128Modules(spec.value); if (modules) minModule=Math.min(minModule,barcodeWidthMm/modules); }
+      const issues=[];
+      if (minModule<.18) issues.push(`最窄模块约 ${minModule.toFixed(2)} mm，条码偏密`);
+      else if (minModule<.25) issues.push(`最窄模块约 ${minModule.toFixed(2)} mm，建议实机扫码确认`);
+      if (barcodeRowH<8) issues.push(`每个条码可用高度约 ${Math.max(0,barcodeRowH).toFixed(1)} mm，偏矮`);
+      if (textRows>=5 && v.height<45) issues.push('文字字段较多且标签高度较小');
+      if (!issues.length) { card.className='quality-card ok'; card.textContent=`清晰度检查：当前 ${v.width}×${v.height} mm / ${specs.length} 个条码，排版空间充足。`; }
+      else { card.className=`quality-card ${minModule<.18||barcodeRowH<6?'bad':'warn'}`; card.textContent=`清晰度检查：${issues.join('；')}。可减少条码/文字、放大标签或改左右版式。`; }
+    }
+
+    function renderSingle(v, host) {
+      const info=singleInfo(v), codeType=fields.codeType.value;
+      const single=document.createElement('div'); single.className='single-label';
+      if ($('showTitle').checked) { const title=document.createElement('div'); title.className='single-title'; title.textContent=info.title; single.appendChild(title); }
+      const zone=document.createElement('div'); zone.className=`single-code-zone ${codeType==='qr'?'qr':'linear'}`;
+      const svg=makeSvg(codeType==='qr'?'qr':'linear'); zone.appendChild(svg); single.appendChild(zone);
+      if ($('showHumanText').checked) { const text=document.createElement('div'); text.className='single-human'; text.textContent=info.raw; single.appendChild(text); }
+      try { codeType==='qr' ? renderQR(svg,info.encoded) : renderCode128(svg,info.encoded); } catch(e) { lastRenderError=e.message; }
+      host.appendChild(single);
+      setText('scanValue', info.encoded || '（空）');
+      setText('scanHelp', codeType==='qr' ? '二维码会把上面的文字直接编码进去。使用微信“扫一扫”时，更适合显示纯文字、多行信息或中文。' : 'Code 128 扫描后通常只返回上面这一串字符。微信对一维码的处理可能因版本和内容而异；需要手机稳定显示文字时，建议改为二维码。');
+    }
+
+    function updatePreview() {
+      lastRenderError='';
+      const v=currentValues(); fields.batchNo.value=v.batchNo; fields.copies.value=v.copies; updateBatchRuleDisplay(v); setCssVars(v);
+      const paper=$('previewLabel'); paper.classList.toggle('with-border',$('showBorder').checked);
+      const host=$('labelInner'); host.replaceChildren();
+      if (stateMode==='full') renderFull(v,host); else { renderSingle(v,host); const qc=$('qualityCard'); if (qc) { qc.className='quality-card'; qc.textContent='清晰度检查仅针对整张标签。'; } }
+      updatePreviewScale(v); toggleOptionPanels(); saveState();
+      const status=$('status'); status.textContent=lastRenderError; status.classList.toggle('ok',false);
+    }
+
+    function updatePreviewScale(v) {
+      const maxW=560, maxH=570; const rawW=v.width*MM_TO_PX, rawH=v.height*MM_TO_PX; const scale=Math.min(1.25,maxW/rawW,maxH/rawH);
+      const paper=$('previewLabel'); paper.style.transform=`scale(${scale})`;
+      const wrap=$('previewWrap'); wrap.style.width=`${rawW*scale}px`; wrap.style.height=`${rawH*scale}px`;
+    }
+
+    function setMode(mode) {
+      stateMode = mode==='full' ? 'full' : 'single';
+      if (mode!=='full') {
+        fields.singleField.value=mode;
+        if (mode==='custom') $('customValueWrap').classList.remove('hidden');
+        if (mode==='summary') fields.codeType.value='qr';
+      }
+      qsa('.mode-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.mode===mode));
+      updatePreview();
+    }
+
+    function toggleOptionPanels() {
+      $('fullOptions').classList.toggle('hidden',stateMode!=='full'); $('singleOptions').classList.toggle('hidden',stateMode==='full');
+      $('customValueWrap').classList.toggle('hidden',fields.singleField.value!=='custom');
+      if (stateMode==='single') {
+        const mode=fields.singleField.value;
+        qsa('.mode-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.mode===mode));
+      }
+      $('includeTitleInCode').disabled=fields.codeType.value!=='qr';
+    }
+
+    function syncPreset() { const p=fields.sizePreset.value; if (p==='custom') return; const [w,h]=p.split('x').map(Number); fields.labelWidth.value=w; fields.labelHeight.value=h; fields.orientation.value='normal'; updatePreview(); }
+    function syncCustomSize() { const raw=`${fields.labelWidth.value}x${fields.labelHeight.value}`; fields.sizePreset.value=qsa('#sizePreset option').some(o=>o.value===raw)?raw:'custom'; fields.orientation.value='normal'; updatePreview(); }
+    function swapSize() { const w=fields.labelWidth.value; fields.labelWidth.value=fields.labelHeight.value; fields.labelHeight.value=w; fields.orientation.value='normal'; syncCustomSize(); }
+
+    function buildPrintSheet() {
+      updatePreview(); if (lastRenderError) throw new Error(lastRenderError);
+      const v=currentValues(); const sheet=$('printSheet'); sheet.replaceChildren();
+      for (let i=0;i<v.copies;i++) { const page=document.createElement('div'); page.className='print-label-page'; const clone=$('previewLabel').cloneNode(true); clone.removeAttribute('id'); clone.style.transform='none'; clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id')); page.appendChild(clone); sheet.appendChild(page); }
+    }
+    function printLabels() { try { buildPrintSheet(); $('status').textContent=''; requestAnimationFrame(()=>window.print()); } catch(e) { $('status').textContent=e.message; } }
+
+    function safeFilePart(value) {
+      return String(value ?? '').trim().replace(/[\\/:*?"<>|\x00-\x1F]/g, '-').replace(/\s+/g, '_').replace(/-+/g, '-').slice(0, 60);
+    }
+
+    function imageFileName(v) {
+      if (stateMode === 'full') {
+        const id = safeFilePart(v.materialCode || v.batchNo || '标签');
+        return `物料标签_${id}.png`;
+      }
+      const info = singleInfo(v);
+      const title = safeFilePart(info.title || '条码');
+      const value = safeFilePart(info.raw || info.encoded || '内容');
+      return `${title}_${value}.png`;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    async function savePreviewPng() {
+      const status = $('status');
+      const paper = $('previewLabel');
+      const oldTransform = paper.style.transform;
+      const oldShadow = paper.style.boxShadow;
+      try {
+        updatePreview();
+        if (lastRenderError) throw new Error(lastRenderError);
+        if (typeof html2canvas !== 'function') throw new Error('图片导出组件未加载，请重新打开此 HTML 文件。');
+
+        const v = currentValues();
+        status.textContent = '正在生成 300 DPI PNG…';
+        status.classList.add('ok');
+        paper.style.transform = 'none';
+        paper.style.boxShadow = 'none';
+
+        const cssWidth = v.width * MM_TO_PX;
+        const cssHeight = v.height * MM_TO_PX;
+        const scale = 300 / 96;
+        const canvas = await html2canvas(paper, {
+          backgroundColor: '#ffffff',
+          scale,
+          width: cssWidth,
+          height: cssHeight,
+          logging: false,
+          useCORS: false,
+          allowTaint: false,
+          imageTimeout: 0,
+          removeContainer: true,
+          onclone: clonedDoc => {
+            const clonedPaper = clonedDoc.getElementById('previewLabel');
+            if (clonedPaper) {
+              clonedPaper.style.transform = 'none';
+              clonedPaper.style.boxShadow = 'none';
+              clonedPaper.style.width = `${v.width}mm`;
+              clonedPaper.style.height = `${v.height}mm`;
+            }
+          }
+        });
+
+        const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1));
+        if (!pngBlob) throw new Error('PNG 生成失败，请使用最新版 Chrome、Edge 或 Safari 重试。');
+        downloadBlob(pngBlob, imageFileName(v));
+        status.textContent = `已保存 PNG：${canvas.width} × ${canvas.height} 像素（约 300 DPI）`;
+        status.classList.add('ok');
+        setTimeout(() => { status.textContent=''; status.classList.remove('ok'); }, 2600);
+      } catch (e) {
+        status.textContent = e.message || '保存图片失败';
+        status.classList.remove('ok');
+      } finally {
+        paper.style.transform = oldTransform;
+        paper.style.boxShadow = oldShadow;
+      }
+    }
+
+    async function copyEncoded() {
+      const v=currentValues(); let text='';
+      if (stateMode==='single') text=singleInfo(v).encoded;
+      else text=`数量条码：${v.quantity}\n批次号条码：${v.batchNo}\n${v.batchBarcodeName}：${v.batchBarcode}\n物料编码：${v.materialCode}\n客户料号：${v.customerPartNo}`;
+      try { await navigator.clipboard.writeText(text); $('status').textContent='已复制编码内容'; $('status').classList.add('ok'); setTimeout(()=>{ $('status').textContent=''; $('status').classList.remove('ok'); },1600); }
+      catch(_) { $('status').textContent='浏览器未允许自动复制，请手动复制“实际编码内容”。'; }
+    }
+
+    function saveState() {
+      const ids=['materialCode','customerPartNo','materialName','productionDate','quantity','copies','batchNoMode','batchNoManual','batchBarcodeName','batchPrefix','batchSuffix','batchSeparator','batchSourceA','batchSourceALength','batchFixedA','batchSourceB','batchSourceBLength','batchFixedB','fullLayout','textDisplayMode','labelMaterialCode','labelCustomerPartNo','labelBatchNo','labelMaterialName','labelQuantity','captionQuantity','captionBatchBarcode','captionBatchNo','captionMaterial','captionCustomer','captionPosQuantity','captionPosBatchBarcode','captionPosBatchNo','captionPosMaterial','captionPosCustomer','orderQuantity','orderBatchBarcode','orderBatchNo','orderMaterial','orderCustomer','singleField','codeType','customValue','customTitle','sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'];
+      const checkIds=['showMaterialCode','showCustomerPartNo','showBatchNo','showMaterialName','showQuantity','fullQuantityBarcode','fullBatchBarcode','fullBatchNoBarcode','fullMaterialBarcode','fullCustomerBarcode','fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'];
+      const state={mode:stateMode,values:{},checks:{}}; ids.forEach(id=>state.values[id]=$(id).value); checkIds.forEach(id=>state.checks[id]=$(id).checked);
+      try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); } catch(_) {}
+    }
+    function loadState() {
+      fields.productionDate.value=localDateISO(); let s=null; try{s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null')}catch(_){}
+      if (!s) return;
+      Object.entries(s.values||{}).forEach(([id,val])=>{ if ($(id)) { if (id==='fullLayout' && val==='side') val='side-left'; if (id==='fullLayout' && val==='stack') val='stack-bottom'; $(id).value=val; } }); Object.entries(s.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; }); stateMode=s.mode==='single'?'single':'full';
+    }
+    function resetExample() {
+      localStorage.removeItem(STORAGE_KEY);
+      const values={materialCode:'3006177',customerPartNo:'3006177',materialName:'DTS-25R-V-B',productionDate:'2023-12-09',quantity:'500',copies:'1',batchNoMode:'yymmdd',batchNoManual:'',batchBarcodeName:'批次条码',batchPrefix:'',batchSuffix:'',batchSeparator:'',batchSourceA:'customerPartNo',batchSourceALength:'7',batchFixedA:'',batchSourceB:'batchNo',batchSourceBLength:'0',batchFixedB:'',fullLayout:'auto',textDisplayMode:'nameValue',labelMaterialCode:'物料编码',labelCustomerPartNo:'客户料号',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',captionQuantity:'数量条码',captionBatchBarcode:'批次条码',captionBatchNo:'批次号',captionMaterial:'物料编码',captionCustomer:'客户料号',captionPosQuantity:'top',captionPosBatchBarcode:'top',captionPosBatchNo:'top',captionPosMaterial:'top',captionPosCustomer:'top',orderQuantity:'1',orderBatchBarcode:'2',orderBatchNo:'3',orderMaterial:'4',orderCustomer:'5',singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',sizePreset:'80x80',labelWidth:'80',labelHeight:'80',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',contentScale:'1',orientation:'normal'};
+      Object.entries(values).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
+      const defaults={showMaterialCode:true,showCustomerPartNo:false,showBatchNo:true,showMaterialName:true,showQuantity:true,fullQuantityBarcode:true,fullBatchBarcode:true,fullBatchNoBarcode:false,fullMaterialBarcode:false,fullCustomerBarcode:false,fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:true};
+      Object.entries(defaults).forEach(([id,val])=>{ if ($(id)) $(id).checked=val; });
+      setMode('full');
+    }
+
+    qsa('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+    qsa('input, select, textarea').forEach(el=>{
+      if (['sizePreset','labelWidth','labelHeight'].includes(el.id)) return;
+      el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{
+        if (el.id==='singleField' && el.value==='summary') fields.codeType.value='qr';
+        updatePreview();
+      });
+      if (el.type==='checkbox') el.addEventListener('change',updatePreview);
+    });
+    fields.sizePreset.addEventListener('change',syncPreset); fields.labelWidth.addEventListener('input',syncCustomSize); fields.labelHeight.addEventListener('input',syncCustomSize);
+    $('swapBtn').addEventListener('click',swapSize); $('printBtn').addEventListener('click',printLabels); $('saveImageBtn').addEventListener('click',savePreviewPng); $('copyBtn').addEventListener('click',copyEncoded); $('resetBtn').addEventListener('click',resetExample);
+    window.addEventListener('beforeprint',()=>{ try{buildPrintSheet()}catch(_){} });
+    loadState();
+    if (stateMode==='single') setMode(fields.singleField.value || 'quantity'); else setMode('full');
+  </script>
+</body>
+</html>
