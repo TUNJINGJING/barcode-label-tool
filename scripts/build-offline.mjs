@@ -30,21 +30,22 @@ const html2canvas = inlineSafe(readFirst([
 
 let html = fs.readFileSync(inputPath, 'utf8');
 
-const replacements = [
-  {
-    tag: '<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>',
-    value: '<script>\n/* qrcode-generator 1.4.4 — embedded for offline use */\n' + qrcode + '\n</script>'
-  },
-  {
-    tag: '<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>',
-    value: '<script>\n/* html2canvas 1.4.1 — embedded for offline use */\n' + html2canvas + '\n</script>'
-  }
-];
+// Remove the two CDN tags regardless of minor formatting changes, then inject
+// the pinned library source immediately before the app's own script.
+html = html
+  .replace(/\s*<script[^>]+src=["'][^"']*qrcode-generator@1\.4\.4[^"']*["'][^>]*><\/script>/gi, '')
+  .replace(/\s*<script[^>]+src=["'][^"']*html2canvas@1\.4\.1[^"']*["'][^>]*><\/script>/gi, '');
 
-for (const {tag, value} of replacements) {
-  if (!html.includes(tag)) throw new Error('Expected external dependency tag was not found: ' + tag);
-  html = html.replace(tag, value);
+const appScriptMarker = '<script>\n    const CODE128_PATTERNS';
+if (!html.includes(appScriptMarker)) {
+  throw new Error('App script marker not found.');
 }
+
+const embeddedDependencies =
+  '<script>\n/* qrcode-generator 1.4.4 — embedded for offline use */\n' + qrcode + '\n</script>\n' +
+  '<script>\n/* html2canvas 1.4.1 — embedded for offline use */\n' + html2canvas + '\n</script>\n  ';
+
+html = html.replace(appScriptMarker, embeddedDependencies + appScriptMarker);
 
 html = html.replace(
   '<title>物料标签与条码打印工具</title>',
