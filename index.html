@@ -154,26 +154,6 @@
     .portrait-label.tiny .portrait-value { font-size:calc(var(--text-font) * .80); }
     .portrait-label.tiny .portrait-barcode-row .human-text { font-size:calc(var(--text-font) * .64); }
 
-    .verify-card { padding:12px; border:1px solid #e4e7ec; border-radius:10px; background:#fcfcfd; }
-    .verify-list { display:grid; gap:7px; margin-top:10px; }
-    .verify-row { display:grid; grid-template-columns:minmax(90px,.75fr) minmax(130px,1.25fr) 72px; gap:8px; align-items:center; padding:8px 9px; border:1px solid #eaecf0; border-radius:8px; background:#fff; }
-    .verify-name { font-size:11px; font-weight:700; color:#344054; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .verify-value { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:11px; color:#101828; overflow-wrap:anywhere; }
-    .verify-badge { justify-self:end; min-width:58px; padding:4px 7px; border-radius:999px; background:#f2f4f7; color:#667085; font-size:10px; font-weight:750; text-align:center; }
-    .verify-row.pass { border-color:#abefc6; background:#f6fef9; }
-    .verify-row.pass .verify-badge { background:#dcfae6; color:#067647; }
-    .verify-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:11px; }
-    .verify-actions .btn { min-height:36px; padding:0 12px; font-size:11px; }
-    .verify-file { position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; }
-    .verify-file input { position:absolute; inset:0; opacity:0; cursor:pointer; }
-    .verify-scanner-input { margin-top:10px; }
-    .verify-scanner-input input { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
-    .verify-camera { margin-top:10px; overflow:hidden; border-radius:10px; border:1px solid #d0d5dd; background:#101828; }
-    .verify-camera video { display:block; width:100%; max-height:300px; object-fit:cover; }
-    .verify-result { margin-top:9px; min-height:34px; padding:8px 9px; border-radius:8px; background:#f2f4f7; color:#475467; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
-    .verify-result.ok { background:#ecfdf3; color:#067647; }
-    .verify-result.bad { background:#fef3f2; color:#b42318; }
-
     .actions { display: grid; grid-template-columns: 1.2fr 1fr .85fr .8fr; gap: 9px; margin-top: 18px; }
     .btn { min-height: 43px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 750; transition: transform .08s ease, background .15s ease; }
     .btn:active { transform: translateY(1px); }
@@ -505,26 +485,6 @@
           </div>
         </section>
 
-        <section class="section" id="verifySection">
-          <div class="section-head"><h2 class="section-title">扫码验证</h2><span class="section-note">建议打印后验收</span></div>
-          <div class="verify-card">
-            <div class="hint" style="margin-top:0">只验证当前已启用的条码。实际扫描结果与预期内容一致后会自动标记通过；修改标签内容后，验证状态会自动重置。</div>
-            <div class="verify-list" id="verifyList"></div>
-            <div class="verify-scanner-input">
-              <div class="label-line"><label class="field-label" for="verifyScannerInput">扫码枪验证</label><span class="help-tip" tabindex="0" data-tip="点击输入框后用 USB / 蓝牙扫码枪扫描。大多数扫码枪会像键盘一样输入内容并回车。">?</span></div>
-              <input id="verifyScannerInput" type="text" autocomplete="off" placeholder="点这里，然后用扫码枪扫描条码" />
-            </div>
-            <div class="verify-actions">
-              <button class="btn btn-outline" id="verifyCameraBtn" type="button">打开摄像头扫描</button>
-              <button class="btn btn-secondary hidden" id="verifyStopCameraBtn" type="button">停止摄像头</button>
-              <label class="btn btn-outline verify-file">拍照 / 上传单个条码<input id="verifyImageInput" type="file" accept="image/*" capture="environment" /></label>
-              <button class="btn btn-secondary" id="verifyResetBtn" type="button">重置验证</button>
-            </div>
-            <div class="verify-camera hidden" id="verifyCameraWrap"><video id="verifyVideo" playsinline muted></video></div>
-            <div class="verify-result" id="verifyResult">尚未验证。</div>
-          </div>
-        </section>
-
         <div class="actions">
           <button class="btn btn-primary" id="printBtn" type="button">打印当前预览</button>
           <button class="btn btn-outline" id="saveImageBtn" type="button">保存预览 PNG</button>
@@ -547,7 +507,6 @@
 
   <div class="print-sheet" id="printSheet"></div>
 
-  <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
@@ -565,7 +524,7 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v10';
+    const STORAGE_KEY = 'material-label-tool-v11';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
@@ -577,10 +536,6 @@
 
     let stateMode = 'full';
     let lastRenderError = '';
-    let verifySignature = '';
-    let verifiedKeys = new Set();
-    let verifyCameraControls = null;
-    let verifyReader = null;
 
     function clamp(n, min, max, fallback) { n = Number(n); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback; }
     function localDateISO(date = new Date()) { const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
@@ -907,10 +862,7 @@
         const value=String(def.value(v)||'');
         const showBarcode=$(def.barcode) && $(def.barcode).checked;
 
-        // 参考图里“批次条码”只显示最终条码，不再单独占一行文字。
-        if (key!=='batchBarcode' || !showBarcode) {
-          blocks.push({type:'text',key,def,value,weight:.72});
-        }
+        blocks.push({type:'text',key,def,value,weight:.72});
         if (showBarcode) {
           blocks.push({type:'barcode',key,def,value,weight:key==='batchBarcode'?1.25:1.18});
         }
@@ -979,140 +931,12 @@
       setText('scanHelp', codeType==='qr' ? '二维码会把上面的文字直接编码进去。使用微信“扫一扫”时，更适合显示纯文字、多行信息或中文。' : 'Code 128 扫描后通常只返回上面这一串字符。微信对一维码的处理可能因版本和内容而异；需要手机稳定显示文字时，建议改为二维码。');
     }
 
-    function expectedBarcodeItems(v) {
-      return layoutItemKeys().map(key=>({key,def:ITEM_DEFS[key]})).filter(({def})=>{
-        return def && $(def.enabled)?.checked && $(def.barcode)?.checked && String(def.value(v)||'').trim();
-      }).map(({key,def})=>({
-        key,
-        name:(fields[def.label]?.value.trim()||key),
-        value:String(def.value(v)||'')
-      }));
-    }
-
-    function verificationSignature(v) {
-      return expectedBarcodeItems(v).map(x=>x.key+'='+x.value).join('|');
-    }
-
-    function resetVerification(message='尚未验证。') {
-      verifiedKeys = new Set();
-      renderVerifyChecklist(currentValues());
-      const result=$('verifyResult');
-      if (result) { result.className='verify-result'; result.textContent=message; }
-    }
-
-    function renderVerifyChecklist(v) {
-      const list=$('verifyList'); if (!list) return;
-      const items=expectedBarcodeItems(v);
-      list.replaceChildren();
-      if (!items.length) {
-        const empty=document.createElement('div'); empty.className='hint'; empty.textContent='当前没有启用条码。'; list.appendChild(empty); return;
-      }
-      for (const item of items) {
-        const row=document.createElement('div'); row.className='verify-row'+(verifiedKeys.has(item.key)?' pass':''); row.dataset.verifyKey=item.key;
-        const name=document.createElement('div'); name.className='verify-name'; name.textContent=item.name;
-        const value=document.createElement('div'); value.className='verify-value'; value.textContent=item.value;
-        const badge=document.createElement('div'); badge.className='verify-badge'; badge.textContent=verifiedKeys.has(item.key)?'已通过':'待验证';
-        row.append(name,value,badge); list.appendChild(row);
-      }
-    }
-
-    function handleDecodedValue(raw,source='扫描') {
-      const value=String(raw??'').trim();
-      const v=currentValues();
-      const items=expectedBarcodeItems(v);
-      const matched=items.filter(item=>item.value===value);
-      const result=$('verifyResult');
-      if (!value) return;
-      if (matched.length) {
-        matched.forEach(item=>verifiedKeys.add(item.key));
-        renderVerifyChecklist(v);
-        const names=matched.map(x=>x.name).join('、');
-        const allDone=items.length>0 && items.every(x=>verifiedKeys.has(x.key));
-        result.className='verify-result ok';
-        result.textContent=source+'结果：'+value+' → 匹配 '+names+(allDone?'。当前所有条码均已验证通过。':'。');
-        if (allDone) stopVerifyCamera();
-      } else {
-        result.className='verify-result bad';
-        result.textContent=source+'结果：'+value+' → 与当前标签中的任何条码内容都不一致。';
-      }
-    }
-
-    function ensureVerifyReader() {
-      if (!window.ZXingBrowser || !ZXingBrowser.BrowserMultiFormatReader) throw new Error('扫码解码组件加载失败，请刷新页面后重试。');
-      if (!verifyReader) verifyReader=new ZXingBrowser.BrowserMultiFormatReader();
-      return verifyReader;
-    }
-
-    async function startVerifyCamera() {
-      try {
-        stopVerifyCamera();
-        const reader=ensureVerifyReader();
-        const video=$('verifyVideo');
-        $('verifyCameraWrap').classList.remove('hidden');
-        $('verifyCameraBtn').classList.add('hidden');
-        $('verifyStopCameraBtn').classList.remove('hidden');
-        const result=$('verifyResult'); result.className='verify-result'; result.textContent='摄像头已打开，对准一个条码进行扫描…';
-        verifyCameraControls=await reader.decodeFromVideoDevice(undefined,video,(scanResult)=>{
-          if (scanResult) {
-            const txt=typeof scanResult.getText==='function'?scanResult.getText():String(scanResult.text||'');
-            handleDecodedValue(txt,'摄像头');
-          }
-        });
-      } catch(e) {
-        stopVerifyCamera();
-        const result=$('verifyResult'); result.className='verify-result bad'; result.textContent='无法打开摄像头：'+(e.message||e);
-      }
-    }
-
-    function stopVerifyCamera() {
-      try { if (verifyCameraControls && typeof verifyCameraControls.stop==='function') verifyCameraControls.stop(); } catch(_) {}
-      verifyCameraControls=null;
-      const video=$('verifyVideo');
-      if (video && video.srcObject) {
-        try { video.srcObject.getTracks().forEach(t=>t.stop()); } catch(_) {}
-        video.srcObject=null;
-      }
-      $('verifyCameraWrap')?.classList.add('hidden');
-      $('verifyCameraBtn')?.classList.remove('hidden');
-      $('verifyStopCameraBtn')?.classList.add('hidden');
-    }
-
-    async function verifyImageFile(file) {
-      if (!file) return;
-      let url='';
-      try {
-        const reader=ensureVerifyReader();
-        url=URL.createObjectURL(file);
-        const resultEl=$('verifyResult'); resultEl.className='verify-result'; resultEl.textContent='正在识别图片…';
-        const decoded=await reader.decodeFromImageUrl(url);
-        const txt=typeof decoded.getText==='function'?decoded.getText():String(decoded.text||'');
-        handleDecodedValue(txt,'图片识别');
-      } catch(e) {
-        const resultEl=$('verifyResult'); resultEl.className='verify-result bad'; resultEl.textContent='图片中没有识别到可用条码。建议裁剪到单个条码后重试。';
-      } finally {
-        if (url) URL.revokeObjectURL(url);
-        const input=$('verifyImageInput'); if (input) input.value='';
-      }
-    }
-
-    function updateVerificationState(v) {
-      const sig=verificationSignature(v);
-      if (sig!==verifySignature) {
-        verifySignature=sig;
-        verifiedKeys=new Set();
-        const result=$('verifyResult');
-        if (result) { result.className='verify-result'; result.textContent='标签内容已变化，请重新验证。'; }
-      }
-      renderVerifyChecklist(v);
-    }
-
     function updatePreview() {
       lastRenderError='';
       const v=currentValues(); fields.batchNo.value=v.batchNo; fields.copies.value=v.copies; updateBatchRuleDisplay(v); setCssVars(v);
       const paper=$('previewLabel'); paper.classList.toggle('with-border',$('showBorder').checked);
       const host=$('labelInner'); host.replaceChildren();
       if (stateMode==='full') renderFull(v,host); else renderSingle(v,host);
-      updateVerificationState(v);
       updatePreviewScale(v); toggleOptionPanels(); saveState();
       const status=$('status'); status.textContent=lastRenderError; status.classList.toggle('ok',false);
     }
@@ -1377,20 +1201,6 @@
     fields.sizePreset.addEventListener('change',syncPreset); fields.labelWidth.addEventListener('input',syncCustomSize); fields.labelHeight.addEventListener('input',syncCustomSize);
     $('swapBtn').addEventListener('click',swapSize); $('printBtn').addEventListener('click',printLabels); $('saveImageBtn').addEventListener('click',savePreviewPng); $('copyBtn').addEventListener('click',copyEncoded); $('resetBtn').addEventListener('click',resetExample);
     window.addEventListener('beforeprint',()=>{ try{buildPrintSheet()}catch(_){} });
-    $('verifyCameraBtn').addEventListener('click',startVerifyCamera);
-    $('verifyStopCameraBtn').addEventListener('click',stopVerifyCamera);
-    $('verifyResetBtn').addEventListener('click',()=>resetVerification());
-    $('verifyImageInput').addEventListener('change',e=>verifyImageFile(e.target.files&&e.target.files[0]));
-    $('verifyScannerInput').addEventListener('keydown',e=>{
-      if (e.key==='Enter') {
-        e.preventDefault();
-        const value=e.target.value.trim();
-        if (value) handleDecodedValue(value,'扫码枪');
-        e.target.value='';
-      }
-    });
-    window.addEventListener('beforeunload',stopVerifyCamera);
-
     initDragOrdering();
     loadState();
     const labelItemsDetails=$('labelItemsDetails'); if (labelItemsDetails) labelItemsDetails.open=true;
