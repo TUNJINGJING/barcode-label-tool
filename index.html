@@ -98,54 +98,39 @@
     .barcode-config-row { display: grid; grid-template-columns: minmax(116px,1.15fr) minmax(92px,.9fr) minmax(74px,.7fr) 64px; gap: 8px; align-items: end; padding: 9px; border: 1px solid #e4e7ec; border-radius: 9px; background: #fff; }
     .barcode-config-row .enable-wrap { display:flex; align-items:center; gap:7px; min-height:40px; font-size:12px; font-weight:700; }
     .barcode-config-row input[type='checkbox'] { width:16px; height:16px; accent-color:var(--accent); }
-    .quality-card { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #f8fafc; border: 1px solid #e4e7ec; font-size: 11px; line-height: 1.55; color: #475467; }
-    .quality-card.ok { background: #ecfdf3; border-color: #abefc6; color: #067647; }
-    .quality-card.warn { background: #fffaeb; border-color: #fedf89; color: #b54708; }
-    .quality-card.bad { background: #fef3f2; border-color: #fecdca; color: #b42318; }
 
     .rule-summary { padding: 12px; border: 1px solid #b2ccff; border-radius: 10px; background: #f5f8ff; }
     .rule-summary-title { margin: 0 0 8px; color: #1849a9; font-size: 12px; font-weight: 800; }
     .rule-summary-line { margin: 4px 0; color: #344054; font-size: 12px; line-height: 1.55; }
     .rule-summary-value { margin-top: 9px; padding: 9px 10px; border: 1px solid #d1e0ff; border-radius: 8px; background: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.55; overflow-wrap:anywhere; }
 
-    .label-item-list { display: grid; gap: 8px; margin-top: 10px; }
-    .label-item-row { display: grid; grid-template-columns: 34px minmax(132px,.9fr) minmax(160px,1.25fr) minmax(105px,.8fr); gap: 8px; align-items: center; padding: 9px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fff; transition: border-color .15s ease, opacity .15s ease, box-shadow .15s ease; }
-    .label-item-row.dragging { opacity: .45; border-color: #528bff; box-shadow: 0 0 0 2px rgba(21,94,239,.08); }
-    .drag-handle { display: grid; place-items: center; width: 30px; height: 40px; border-radius: 8px; background: #f2f4f7; color: #667085; cursor: grab; user-select: none; font-size: 19px; line-height: 1; }
-    .drag-handle:active { cursor: grabbing; }
-    .item-enable { display:flex; align-items:center; gap:7px; min-height:40px; color:#344054; font-size:12px; font-weight:750; }
-    .item-enable input { width:16px; height:16px; accent-color:var(--accent); }
-    .item-meta { color:#667085; font-size:10px; line-height:1.35; }
-    .item-controls { display:grid; grid-template-columns: 1fr; gap:5px; }
-    .item-controls.inline { grid-template-columns: minmax(0,1fr) 96px; }
-    .label-item-row .field-label { margin-bottom:4px; font-size:10px; }
-    .label-item-row input[type="text"], .label-item-row select { height:36px; }
+    .label-item-list { display:grid; gap:8px; margin-top:10px; }
+    .table-config-head { display:grid; grid-template-columns:34px minmax(120px,.9fr) minmax(150px,1.1fr) 110px; gap:8px; padding:0 9px 6px; color:#667085; font-size:10px; font-weight:700; }
+    .label-item-row { display:grid; grid-template-columns:34px minmax(120px,.9fr) minmax(150px,1.1fr) 110px; gap:8px; align-items:center; padding:9px; border:1px solid #e4e7ec; border-radius:10px; background:#fff; transition:border-color .15s ease,opacity .15s ease,box-shadow .15s ease; }
+    .label-item-row.dragging { opacity:.45; border-color:#528bff; box-shadow:0 0 0 2px rgba(21,94,239,.08); }
+    .drag-handle { display:grid; place-items:center; width:30px; height:38px; border-radius:8px; background:#f2f4f7; color:#667085; cursor:grab; user-select:none; font-size:19px; line-height:1; }
+    .drag-handle:active { cursor:grabbing; }
+    .item-enable,.barcode-toggle { display:flex; align-items:center; gap:7px; min-height:36px; color:#344054; font-size:12px; font-weight:700; }
+    .item-enable input,.barcode-toggle input { width:16px; height:16px; accent-color:var(--accent); }
+    .barcode-toggle { font-size:11px; font-weight:600; }
+    .label-item-row input[type="text"] { height:36px; }
 
-    .scope-card { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px; }
-    .scope-option { display:flex; align-items:flex-start; gap:8px; padding:10px; border:1px solid #e4e7ec; border-radius:10px; background:#fff; cursor:pointer; }
-    .scope-option input { margin-top:2px; accent-color:var(--accent); }
-    .scope-option strong { display:block; font-size:12px; color:#344054; }
-    .scope-option span { display:block; margin-top:3px; color:#667085; font-size:10px; line-height:1.4; }
-
-    .template-label { width:100%; height:100%; min-height:0; display:grid; grid-template-columns: minmax(0,56%) minmax(0,44%); gap:2mm; overflow:hidden; }
-    .template-label.main-only { display:block; }
-    .template-main { width:100%; height:100%; min-height:0; display:grid; gap:.5mm; overflow:hidden; padding:.5mm .5mm; }
-    .template-item { min-height:0; min-width:0; overflow:hidden; }
-    .template-text { display:grid; grid-template-columns: 34% 66%; align-items:center; padding:0 1.2mm; font-size:var(--text-font); line-height:1.08; }
-    .template-text .template-key, .template-text .template-value { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .template-barcode { display:flex; flex-direction:column; min-height:0; align-items:stretch; justify-content:flex-start; padding:.2mm 1.6mm; }
-    .template-barcode .barcode-main { flex:1 1 0; min-height:0; }
-    .template-barcode .human-text { margin-top:.08mm; }
-    .template-notes { width:100%; height:100%; min-height:0; display:flex; flex-direction:column; justify-content:flex-start; padding:1.2mm 1.5mm; overflow:hidden; }
-    .template-notes h3 { margin:0 0 3mm; text-align:center; font-size:calc(var(--text-font) * 1.25); line-height:1.05; }
-    .note-line { margin:0 0 2.1mm; font-size:var(--text-font); line-height:1.25; white-space:normal; overflow-wrap:anywhere; }
-    .note-line.em { color:#175cd3; }
-    .note-rule { margin-top:auto; padding-top:1mm; font-size:calc(var(--text-font) * .94); line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
-    .template-label.compact .template-text { font-size:calc(var(--text-font) * .88); }
-    .template-label.compact .human-text { font-size:calc(var(--text-font) * .82); }
-    .template-label.tiny .template-text { font-size:calc(var(--text-font) * .76); padding:0 .7mm; }
-    .template-label.tiny .human-text { font-size:calc(var(--text-font) * .7); }
-    .template-label.tiny .note-line { margin-bottom:1mm; font-size:calc(var(--text-font) * .78); }
+    .table-label { width:100%; height:100%; min-height:0; display:grid; overflow:hidden; border:.2mm solid #111; }
+    .table-print-row { min-height:0; display:grid; grid-template-columns:22% 28% 50%; overflow:hidden; border-bottom:.2mm solid #111; }
+    .table-print-row:last-child { border-bottom:0; }
+    .table-cell { min-width:0; min-height:0; overflow:hidden; display:flex; align-items:center; padding:.5mm 1.1mm; }
+    .table-key { border-right:.2mm solid #111; font-size:calc(var(--text-font) * .78); font-weight:600; line-height:1.05; white-space:nowrap; text-overflow:ellipsis; }
+    .table-value { border-right:.2mm solid #111; font-size:var(--text-font); font-weight:500; line-height:1.05; white-space:nowrap; text-overflow:ellipsis; }
+    .table-barcode { padding:.3mm 1.4mm; display:flex; flex-direction:column; align-items:stretch; justify-content:center; }
+    .table-barcode.empty { background:#fff; }
+    .table-barcode .barcode-graphic { flex:1 1 0; min-height:0; width:100%; }
+    .table-barcode .human-text { flex:0 0 auto; margin-top:.08mm; font-size:calc(var(--text-font) * .72); line-height:1; letter-spacing:.02em; }
+    .table-label.compact .table-key { font-size:calc(var(--text-font) * .68); padding-left:.7mm; padding-right:.7mm; }
+    .table-label.compact .table-value { font-size:calc(var(--text-font) * .86); padding-left:.8mm; padding-right:.8mm; }
+    .table-label.compact .table-barcode { padding:.18mm .9mm; }
+    .table-label.tiny .table-key { font-size:calc(var(--text-font) * .6); }
+    .table-label.tiny .table-value { font-size:calc(var(--text-font) * .76); }
+    .table-label.tiny .table-barcode .human-text { font-size:calc(var(--text-font) * .62); }
 
     .actions { display: grid; grid-template-columns: 1.2fr 1fr .85fr .8fr; gap: 9px; margin-top: 18px; }
     .btn { min-height: 43px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 750; transition: transform .08s ease, background .15s ease; }
@@ -236,9 +221,9 @@
       .field-grid, .inline-row, .inline-row.three, .mini-grid, .mini-grid.three { grid-template-columns: 1fr; }
       .quick-modes { grid-template-columns: repeat(2, 1fr); }
       .barcode-config-row { grid-template-columns: 1fr 1fr; }
-      .label-item-row { grid-template-columns: 34px 1fr; }
-      .label-item-row .item-controls, .label-item-row .item-meta { grid-column:2; }
-      .scope-card { grid-template-columns:1fr; }
+      .table-config-head { display:none; }
+      .label-item-row { grid-template-columns:34px 1fr; }
+      .label-item-row > input[type="text"], .label-item-row .barcode-toggle { grid-column:2; }
       .actions { grid-template-columns: 1fr; }
       .preview-stage { min-height: 420px; padding: 24px 10px; place-items: start center; }
     }
@@ -259,7 +244,7 @@
     <header class="topbar">
       <div class="title-wrap">
         <h1>物料标签与条码打印工具</h1>
-        <p>生成可直接打印的物料标签；支持拖拽调整项目顺序、自定义条码标题位置、PNG 导出与直接打印。</p>
+        <p>生成可直接打印的物料标签；左侧项目名称、中间数据、右侧条码，支持拖拽调整行顺序、PNG 导出与直接打印。</p>
       </div>
       <span class="offline-badge">单文件 · 可离线使用</span>
     </header>
@@ -291,7 +276,7 @@
         </section>
 
         <section class="section">
-          <div class="section-head"><h2 class="section-title">2. 编码规则</h2><span class="section-note">默认就是你现在使用的规则</span></div>
+          <div class="section-head"><h2 class="section-title">2. 编码规则</h2></div>
           <div class="rule-summary">
             <div class="rule-summary-title">当前规则</div>
             <div class="rule-summary-line">批次号 = 生产日期（年2位 + 月2位 + 日2位）</div>
@@ -314,27 +299,52 @@
         </section>
 
         <section class="section" id="fullOptions">
-          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">主标签内容按拖拽顺序打印</span></div>
-          <div class="field-grid">
-            <div class="field full"><label class="field-label">条码数字</label><label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label></div>
+          <div class="section-head"><h2 class="section-title">3. 整张标签设计</h2><span class="section-note">拖动调整打印顺序</span></div>
+          <div class="field-grid" style="margin-bottom:12px">
+            <div class="field full">
+              <label class="field-label">条码数字</label>
+              <label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label>
+            </div>
           </div>
           <details class="config-group" open>
-            <summary>主标签排版（按住 ⋮⋮ 上下拖动）</summary>
+            <summary>标签项目</summary>
             <div class="config-body">
-              <div class="hint">拖动整行即可调整真正的打印顺序，不再填写顺序数字。</div>
+              <div class="hint">按住左侧拖动柄，上下拖动调整打印顺序。</div>
+              <div class="table-config-head"><span></span><span>项目</span><span>显示名称</span><span>右侧条码</span></div>
               <div class="label-item-list" id="labelItemsList">
-                <div class="label-item-row" draggable="true" data-item="materialText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialText" type="checkbox" checked />物料编码（文字）</label><div class="item-controls"><label class="field-label" for="labelMaterialCode">显示名称</label><input id="labelMaterialCode" type="text" value="物料编码" /></div><div class="item-meta">名称 + 物料编码</div></div>
-                <div class="label-item-row" draggable="true" data-item="materialBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialBarcode" type="checkbox" checked />物料编码条码</label><div class="item-controls inline"><div><label class="field-label" for="captionMaterial">条码标题</label><input id="captionMaterial" type="text" value="物料编码条形码" /></div><div><label class="field-label" for="captionPosMaterial">标题位置</label><select id="captionPosMaterial"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：物料编码</div></div>
-                <div class="label-item-row" draggable="true" data-item="batchText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchText" type="checkbox" checked />批次号（文字）</label><div class="item-controls"><label class="field-label" for="labelBatchNo">显示名称</label><input id="labelBatchNo" type="text" value="批次号" /></div><div class="item-meta">名称 + 批次号</div></div>
-                <div class="label-item-row" draggable="true" data-item="batchNoBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchNoBarcode" type="checkbox" checked />批次号条码</label><div class="item-controls inline"><div><label class="field-label" for="captionBatchNo">条码标题</label><input id="captionBatchNo" type="text" value="批次号条形码" /></div><div><label class="field-label" for="captionPosBatchNo">标题位置</label><select id="captionPosBatchNo"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：批次号</div></div>
-                <div class="label-item-row" draggable="true" data-item="materialNameText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemMaterialNameText" type="checkbox" checked />物料名称（文字）</label><div class="item-controls"><label class="field-label" for="labelMaterialName">显示名称</label><input id="labelMaterialName" type="text" value="物料名称" /></div><div class="item-meta">名称 + 工厂型号</div></div>
-                <div class="label-item-row" draggable="true" data-item="quantityText"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemQuantityText" type="checkbox" checked />数量（文字）</label><div class="item-controls"><label class="field-label" for="labelQuantity">显示名称</label><input id="labelQuantity" type="text" value="数量" /></div><div class="item-meta">名称 + 数量</div></div>
-                <div class="label-item-row" draggable="true" data-item="quantityBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemQuantityBarcode" type="checkbox" checked />数量条码</label><div class="item-controls inline"><div><label class="field-label" for="captionQuantity">条码标题</label><input id="captionQuantity" type="text" value="数量条码" /></div><div><label class="field-label" for="captionPosQuantity">标题位置</label><select id="captionPosQuantity"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：数量</div></div>
-                <div class="label-item-row" draggable="true" data-item="batchBarcode"><div class="drag-handle">⋮⋮</div><label class="item-enable"><input id="itemBatchBarcode" type="checkbox" checked />批次条码</label><div class="item-controls inline"><div><label class="field-label" for="captionBatchBarcode">条码标题</label><input id="captionBatchBarcode" type="text" value="批次条码" /></div><div><label class="field-label" for="captionPosBatchBarcode">标题位置</label><select id="captionPosBatchBarcode"><option value="none" selected>不显示</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></div></div><div class="item-meta">扫描内容：物料编码前7位 + 批次号</div></div>
+                <div class="label-item-row" data-item="materialCode">
+                  <div class="drag-handle" title="拖动排序">⋮⋮</div>
+                  <label class="item-enable"><input id="itemMaterialCode" type="checkbox" checked />物料编码</label>
+                  <input id="labelMaterialCode" type="text" value="物料编码" aria-label="物料编码显示名称" />
+                  <label class="barcode-toggle"><input id="barcodeMaterialCode" type="checkbox" checked />显示条码</label>
+                </div>
+                <div class="label-item-row" data-item="batchNo">
+                  <div class="drag-handle" title="拖动排序">⋮⋮</div>
+                  <label class="item-enable"><input id="itemBatchNo" type="checkbox" checked />批次号</label>
+                  <input id="labelBatchNo" type="text" value="批次号" aria-label="批次号显示名称" />
+                  <label class="barcode-toggle"><input id="barcodeBatchNo" type="checkbox" checked />显示条码</label>
+                </div>
+                <div class="label-item-row" data-item="materialName">
+                  <div class="drag-handle" title="拖动排序">⋮⋮</div>
+                  <label class="item-enable"><input id="itemMaterialName" type="checkbox" checked />物料名称</label>
+                  <input id="labelMaterialName" type="text" value="物料名称" aria-label="物料名称显示名称" />
+                  <label class="barcode-toggle"><input id="barcodeMaterialName" type="checkbox" />显示条码</label>
+                </div>
+                <div class="label-item-row" data-item="quantity">
+                  <div class="drag-handle" title="拖动排序">⋮⋮</div>
+                  <label class="item-enable"><input id="itemQuantity" type="checkbox" checked />数量</label>
+                  <input id="labelQuantity" type="text" value="数量" aria-label="数量显示名称" />
+                  <label class="barcode-toggle"><input id="barcodeQuantity" type="checkbox" checked />显示条码</label>
+                </div>
+                <div class="label-item-row" data-item="batchBarcode">
+                  <div class="drag-handle" title="拖动排序">⋮⋮</div>
+                  <label class="item-enable"><input id="itemBatchBarcode" type="checkbox" checked />批次条码</label>
+                  <input id="labelBatchBarcode" type="text" value="批次条码" aria-label="批次条码显示名称" />
+                  <label class="barcode-toggle"><input id="barcodeBatchBarcode" type="checkbox" checked />显示条码</label>
+                </div>
               </div>
             </div>
           </details>
-          <div class="quality-card" id="qualityCard">清晰度检查：等待预览。</div>
         </section>
 
         <section class="section hidden" id="singleOptions">
@@ -466,14 +476,12 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v4';
+    const STORAGE_KEY = 'material-label-tool-v5';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
       batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchMaterialLength:$('batchMaterialLength'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'),
-      labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
-      captionQuantity:$('captionQuantity'), captionBatchBarcode:$('captionBatchBarcode'), captionBatchNo:$('captionBatchNo'), captionMaterial:$('captionMaterial'),
-      captionPosQuantity:$('captionPosQuantity'), captionPosBatchBarcode:$('captionPosBatchBarcode'), captionPosBatchNo:$('captionPosBatchNo'), captionPosMaterial:$('captionPosMaterial'),
+      labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'), labelBatchBarcode:$('labelBatchBarcode'),
       singleField:$('singleField'), codeType:$('codeType'), customValue:$('customValue'), customTitle:$('customTitle'),
       sizePreset:$('sizePreset'), labelWidth:$('labelWidth'), labelHeight:$('labelHeight'), labelPadding:$('labelPadding'), barcodeHeight:$('barcodeHeight'), titleFont:$('titleFont'), textFont:$('textFont'), contentScale:$('contentScale'), orientation:$('orientation')
     };
@@ -656,16 +664,13 @@
       row.append(a,b); return row;
     }
 
-    const DEFAULT_ITEM_ORDER=['materialText','materialBarcode','batchText','batchNoBarcode','materialNameText','quantityText','quantityBarcode','batchBarcode'];
+    const DEFAULT_ITEM_ORDER=['materialCode','batchNo','materialName','quantity','batchBarcode'];
     const ITEM_DEFS={
-      materialText:{kind:'text',enabled:'itemMaterialText',label:'labelMaterialCode',value:v=>v.materialCode},
-      materialBarcode:{kind:'barcode',enabled:'itemMaterialBarcode',caption:'captionMaterial',pos:'captionPosMaterial',value:v=>v.materialCode},
-      batchText:{kind:'text',enabled:'itemBatchText',label:'labelBatchNo',value:v=>v.batchNo},
-      batchNoBarcode:{kind:'barcode',enabled:'itemBatchNoBarcode',caption:'captionBatchNo',pos:'captionPosBatchNo',value:v=>v.batchNo},
-      materialNameText:{kind:'text',enabled:'itemMaterialNameText',label:'labelMaterialName',value:v=>v.materialName},
-      quantityText:{kind:'text',enabled:'itemQuantityText',label:'labelQuantity',value:v=>v.quantity},
-      quantityBarcode:{kind:'barcode',enabled:'itemQuantityBarcode',caption:'captionQuantity',pos:'captionPosQuantity',value:v=>v.quantity},
-      batchBarcode:{kind:'barcode',enabled:'itemBatchBarcode',caption:'captionBatchBarcode',pos:'captionPosBatchBarcode',value:v=>v.batchBarcode}
+      materialCode:{enabled:'itemMaterialCode',barcode:'barcodeMaterialCode',label:'labelMaterialCode',value:v=>v.materialCode},
+      batchNo:{enabled:'itemBatchNo',barcode:'barcodeBatchNo',label:'labelBatchNo',value:v=>v.batchNo},
+      materialName:{enabled:'itemMaterialName',barcode:'barcodeMaterialName',label:'labelMaterialName',value:v=>v.materialName},
+      quantity:{enabled:'itemQuantity',barcode:'barcodeQuantity',label:'labelQuantity',value:v=>v.quantity},
+      batchBarcode:{enabled:'itemBatchBarcode',barcode:'barcodeBatchBarcode',label:'labelBatchBarcode',value:v=>v.batchBarcode}
     };
 
     function layoutItemKeys() {
@@ -673,107 +678,49 @@
     }
 
     function visibleItems(v) {
-      return layoutItemKeys()
-        .map(key=>({key,def:ITEM_DEFS[key]}))
+      return layoutItemKeys().map(key=>({key,def:ITEM_DEFS[key]}))
         .filter(({def})=>def && $(def.enabled) && $(def.enabled).checked && String(def.value(v)||'').trim());
     }
 
-    function barcodeSpecFor(key,v) {
-      const def=ITEM_DEFS[key];
-      if (!def || def.kind!=='barcode') return null;
-      return {
-        key,
-        title:(fields[def.caption] ? fields[def.caption].value.trim() : ''),
-        pos:(fields[def.pos] ? fields[def.pos].value : 'none') || 'none',
-        value:String(def.value(v)||'')
-      };
-    }
-
-    function makeBarcodeMain(spec) {
-      const main=document.createElement('div');
-      main.className='barcode-main caption-'+(spec.pos||'none');
+    function renderTableBarcode(value,cell) {
       const graphic=document.createElement('div'); graphic.className='barcode-graphic';
-      const svg=makeSvg('linear'); graphic.appendChild(svg);
-      const cap=document.createElement('div'); cap.className='code-caption'; cap.textContent=spec.title;
-      if (spec.pos==='bottom' || spec.pos==='right') main.append(graphic,cap);
-      else if (spec.pos==='none' || !spec.title) main.appendChild(graphic);
-      else main.append(cap,graphic);
-      return {main,svg};
+      const svg=makeSvg('linear'); graphic.appendChild(svg); cell.appendChild(graphic);
+      if ($('fullShowText').checked) {
+        const human=document.createElement('div'); human.className='human-text'; human.textContent=value; cell.appendChild(human);
+      }
+      renderCode128(svg,value);
     }
 
     function renderFull(v, host) {
-      const shell=document.createElement('div'); shell.className='template-label main-only';
-      const main=document.createElement('div'); main.className='template-main';
+      const table=document.createElement('div'); table.className='table-label';
       const items=visibleItems(v);
-      const weights=items.map(({def})=>def.kind==='barcode'?1.35:.72);
-      main.style.gridTemplateRows=weights.map(w=>'minmax(0,'+w+'fr)').join(' ');
-      const specs=[];
+      table.style.gridTemplateRows='repeat('+Math.max(items.length,1)+', minmax(0,1fr))';
 
       for (const {key,def} of items) {
-        if (def.kind==='text') {
-          const item=document.createElement('div'); item.className='template-item template-text';
-          const k=document.createElement('div'); k.className='template-key';
-          k.textContent=fields[def.label] ? fields[def.label].value.trim() : '';
-          const val=document.createElement('div'); val.className='template-value'; val.textContent=def.value(v)||'';
-          item.append(k,val); main.appendChild(item);
+        const row=document.createElement('div'); row.className='table-print-row';
+        const keyCell=document.createElement('div'); keyCell.className='table-cell table-key';
+        keyCell.textContent=fields[def.label] ? fields[def.label].value.trim() : '';
+        const valueCell=document.createElement('div'); valueCell.className='table-cell table-value';
+        const value=String(def.value(v)||''); valueCell.textContent=value;
+        const barcodeCell=document.createElement('div'); barcodeCell.className='table-cell table-barcode';
+        if ($(def.barcode) && $(def.barcode).checked) {
+          try { renderTableBarcode(value,barcodeCell); }
+          catch(e) { lastRenderError ||= (keyCell.textContent||key)+'：'+e.message; }
         } else {
-          const spec=barcodeSpecFor(key,v); specs.push(spec);
-          const item=document.createElement('div'); item.className='template-item template-barcode';
-          const built=makeBarcodeMain(spec); item.appendChild(built.main);
-          if ($('fullShowText').checked) {
-            const human=document.createElement('div'); human.className='human-text'; human.textContent=spec.value; item.appendChild(human);
-          }
-          try { renderCode128(built.svg,spec.value); }
-          catch(e) { lastRenderError ||= (spec.title||key)+'：'+e.message; }
-          main.appendChild(item);
+          barcodeCell.classList.add('empty');
         }
+        row.append(keyCell,valueCell,barcodeCell);
+        table.appendChild(row);
       }
 
-      shell.appendChild(main);
       if (!items.length) {
-        const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少启用一个标签项目'; main.appendChild(empty);
+        const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少启用一个标签项目'; table.appendChild(empty);
       }
 
-      const usableH=Math.max(1,v.height-v.padding*2);
-      const totalWeight=weights.reduce((a,b)=>a+b,0)||1;
-      const barcodeRowH=usableH/totalWeight*1.35;
-      if (barcodeRowH<8 || items.length>=9) shell.classList.add('tiny');
-      else if (barcodeRowH<12 || items.length>=8) shell.classList.add('compact');
-
-      host.appendChild(shell);
-      updateQualityCard(v,specs,barcodeRowH,items.length);
-    }
-
-    function code128Modules(value) {
-      try {
-        const codes=encodeCode128(value);
-        let total=22;
-        for (const code of codes) for (const symbol of CODE128_PATTERNS[code]) total += symbol.toLowerCase().charCodeAt(0)-96;
-        return total;
-      } catch(_) { return 0; }
-    }
-
-    function updateQualityCard(v,specs,barcodeRowH,itemCount) {
-      const card=$('qualityCard'); if (!card) return;
-      if (!specs.length) { card.className='quality-card'; card.textContent='清晰度检查：当前没有启用条码。'; return; }
-      const mainWidth=v.width-v.padding*2;
-      let minModule=Infinity;
-      for (const spec of specs) {
-        const modules=code128Modules(spec.value);
-        if (modules) minModule=Math.min(minModule,mainWidth/modules);
-      }
-      const issues=[];
-      if (minModule<.18) issues.push('最窄模块约 '+minModule.toFixed(2)+' mm，条码偏密');
-      else if (minModule<.25) issues.push('最窄模块约 '+minModule.toFixed(2)+' mm，建议打印后实机扫码确认');
-      if (barcodeRowH<8) issues.push('单个条码可用高度约 '+barcodeRowH.toFixed(1)+' mm，偏矮');
-      if (itemCount>8 && v.height<75) issues.push('当前项目较多，建议减少项目或增加标签高度');
-      if (!issues.length) {
-        card.className='quality-card ok';
-        card.textContent='清晰度检查：'+v.width+'×'+v.height+' mm / '+specs.length+' 个条码，当前空间充足。';
-      } else {
-        card.className='quality-card '+((minModule<.18||barcodeRowH<6)?'bad':'warn');
-        card.textContent='清晰度检查：'+issues.join('；')+'。';
-      }
+      const rowH=(v.height-v.padding*2)/Math.max(items.length,1);
+      if (rowH<10) table.classList.add('tiny');
+      else if (rowH<13) table.classList.add('compact');
+      host.appendChild(table);
     }
 
     function renderSingle(v, host) {
@@ -794,7 +741,7 @@
       const v=currentValues(); fields.batchNo.value=v.batchNo; fields.copies.value=v.copies; updateBatchRuleDisplay(v); setCssVars(v);
       const paper=$('previewLabel'); paper.classList.toggle('with-border',$('showBorder').checked);
       const host=$('labelInner'); host.replaceChildren();
-      if (stateMode==='full') renderFull(v,host); else { renderSingle(v,host); const qc=$('qualityCard'); if (qc) { qc.className='quality-card'; qc.textContent='清晰度检查仅针对整张标签。'; } }
+      if (stateMode==='full') renderFull(v,host); else renderSingle(v,host);
       updatePreviewScale(v); toggleOptionPanels(); saveState();
       const status=$('status'); status.textContent=lastRenderError; status.classList.toggle('ok',false);
     }
@@ -947,15 +894,13 @@
       const ids=[
         'materialCode','materialName','productionDate','quantity','copies',
         'batchNoMode','batchNoManual','batchMaterialLength','batchPrefix','batchSuffix','batchSeparator',
-        'labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity',
-        'captionQuantity','captionBatchBarcode','captionBatchNo','captionMaterial',
-        'captionPosQuantity','captionPosBatchBarcode','captionPosBatchNo','captionPosMaterial',
+        'labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity','labelBatchBarcode',
         'singleField','codeType','customValue','customTitle',
         'sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'
       ];
       const checkIds=[
-        'itemMaterialText','itemMaterialBarcode','itemBatchText','itemBatchNoBarcode',
-        'itemMaterialNameText','itemQuantityText','itemQuantityBarcode','itemBatchBarcode',
+        'itemMaterialCode','itemBatchNo','itemMaterialName','itemQuantity','itemBatchBarcode',
+        'barcodeMaterialCode','barcodeBatchNo','barcodeMaterialName','barcodeQuantity','barcodeBatchBarcode',
         'fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'
       ];
       const state={mode:stateMode,values:{},checks:{},order:layoutItemKeys()};
@@ -968,10 +913,7 @@
       fields.productionDate.value=localDateISO();
       let saved=null;
       try { saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch(_) {}
-      if (!saved) {
-        reorderItemRows(DEFAULT_ITEM_ORDER);
-        return;
-      }
+      if (!saved) { reorderItemRows(DEFAULT_ITEM_ORDER); return; }
       Object.entries(saved.values||{}).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
       Object.entries(saved.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; });
       reorderItemRows(Array.isArray(saved.order)?saved.order:DEFAULT_ITEM_ORDER);
@@ -983,16 +925,14 @@
       const values={
         materialCode:'3006177',materialName:'DTS-25R-V-B',productionDate:localDateISO(),quantity:'500',copies:'1',
         batchNoMode:'yymmdd',batchNoManual:'',batchMaterialLength:'7',batchPrefix:'',batchSuffix:'',batchSeparator:'',
-        labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',
-        captionQuantity:'数量条码',captionBatchBarcode:'批次条码',captionBatchNo:'批次号条形码',captionMaterial:'物料编码条形码',
-        captionPosQuantity:'none',captionPosBatchBarcode:'none',captionPosBatchNo:'none',captionPosMaterial:'none',
+        labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',labelBatchBarcode:'批次条码',
         singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',
         sizePreset:'115x75',labelWidth:'115',labelHeight:'75',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',contentScale:'1',orientation:'normal'
       };
       Object.entries(values).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
       const defaults={
-        itemMaterialText:true,itemMaterialBarcode:true,itemBatchText:true,itemBatchNoBarcode:true,
-        itemMaterialNameText:true,itemQuantityText:true,itemQuantityBarcode:true,itemBatchBarcode:true,
+        itemMaterialCode:true,itemBatchNo:true,itemMaterialName:true,itemQuantity:true,itemBatchBarcode:true,
+        barcodeMaterialCode:true,barcodeBatchNo:true,barcodeMaterialName:false,barcodeQuantity:true,barcodeBatchBarcode:true,
         fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:false
       };
       Object.entries(defaults).forEach(([id,val])=>{ if ($(id)) $(id).checked=val; });
