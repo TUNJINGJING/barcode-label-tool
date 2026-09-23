@@ -1,0 +1,55 @@
+name: Build offline HTML
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pinned browser dependencies
+        run: npm install --no-save --ignore-scripts qrcode-generator@1.4.4 html2canvas@1.4.1
+
+      - name: Build fully offline single HTML
+        run: node scripts/build-offline.mjs
+
+      - name: Verify no external runtime dependencies remain
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('barcode-label-tool-offline.html', 'utf8');
+          const external = [
+            ...html.matchAll(/<(?:script|img|iframe)[^>]+src=["']https?:\/\/[^"']+["'][^>]*>/gi),
+            ...html.matchAll(/<link[^>]+href=["']https?:\/\/[^"']+["'][^>]*>/gi),
+          ];
+          if (external.length) {
+            console.error('External runtime dependency remains:', external[0][0]);
+            process.exit(1);
+          }
+          if (!html.includes('html2canvas') || !html.includes('qrcode')) {
+            console.error('Embedded dependencies not found.');
+            process.exit(1);
+          }
+          console.log('Offline HTML verified:', Buffer.byteLength(html), 'bytes');
+          NODE
+
+      - name: Upload offline HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: barcode-label-tool-offline
+          path: barcode-label-tool-offline.html
+          if-no-files-found: error
+          retention-days: 90
