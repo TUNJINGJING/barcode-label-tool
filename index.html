@@ -854,13 +854,16 @@
     }
 
     function toggleOptionPanels() {
-      $('fullOptions').classList.toggle('hidden',stateMode!=='full'); $('singleOptions').classList.toggle('hidden',stateMode==='full');
+      $('fullOptions').classList.toggle('hidden',stateMode!=='full');
+      $('singleOptions').classList.toggle('hidden',stateMode==='full');
       $('customValueWrap').classList.toggle('hidden',fields.singleField.value!=='custom');
+      const isQR=fields.codeType.value==='qr';
+      $('includeTitleQrWrap').classList.toggle('hidden',!isQR);
+      if (!isQR) $('includeTitleInCode').checked=false;
       if (stateMode==='single') {
         const mode=fields.singleField.value;
         qsa('.mode-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.mode===mode));
       }
-      $('includeTitleInCode').disabled=fields.codeType.value!=='qr';
     }
 
     function syncPreset() { const p=fields.sizePreset.value; if (p==='custom') return; const [w,h]=p.split('x').map(Number); fields.labelWidth.value=w; fields.labelHeight.value=h; fields.orientation.value='normal'; updatePreview(); }
@@ -958,29 +961,121 @@
     async function copyEncoded() {
       const v=currentValues(); let text='';
       if (stateMode==='single') text=singleInfo(v).encoded;
-      else text=`数量条码：${v.quantity}\n批次号条码：${v.batchNo}\n${v.batchBarcodeName}：${v.batchBarcode}\n物料编码：${v.materialCode}\n客户料号：${v.customerPartNo}`;
-      try { await navigator.clipboard.writeText(text); $('status').textContent='已复制编码内容'; $('status').classList.add('ok'); setTimeout(()=>{ $('status').textContent=''; $('status').classList.remove('ok'); },1600); }
-      catch(_) { $('status').textContent='浏览器未允许自动复制，请手动复制“实际编码内容”。'; }
+      else text='物料编码 '+v.materialCode+'\n批次号 '+v.batchNo+'\n数量 '+v.quantity+'\n批次条码 '+v.batchBarcode;
+      try {
+        await navigator.clipboard.writeText(text);
+        $('status').textContent='已复制编码内容';
+        $('status').classList.add('ok');
+        setTimeout(()=>{ $('status').textContent=''; $('status').classList.remove('ok'); },1600);
+      } catch(_) {
+        $('status').textContent='浏览器未允许自动复制，请手动复制“实际编码内容”。';
+      }
+    }
+
+    function reorderItemRows(order) {
+      const list=$('labelItemsList'); if (!list) return;
+      const map=new Map(qsa('#labelItemsList .label-item-row').map(row=>[row.dataset.item,row]));
+      const supplied=Array.isArray(order)?order:[];
+      const keys=[...supplied,...DEFAULT_ITEM_ORDER.filter(k=>!supplied.includes(k))];
+      keys.forEach(k=>{ const row=map.get(k); if (row) list.appendChild(row); });
     }
 
     function saveState() {
-      const ids=['materialCode','customerPartNo','materialName','productionDate','quantity','copies','batchNoMode','batchNoManual','batchBarcodeName','batchPrefix','batchSuffix','batchSeparator','batchSourceA','batchSourceALength','batchFixedA','batchSourceB','batchSourceBLength','batchFixedB','fullLayout','textDisplayMode','labelMaterialCode','labelCustomerPartNo','labelBatchNo','labelMaterialName','labelQuantity','captionQuantity','captionBatchBarcode','captionBatchNo','captionMaterial','captionCustomer','captionPosQuantity','captionPosBatchBarcode','captionPosBatchNo','captionPosMaterial','captionPosCustomer','orderQuantity','orderBatchBarcode','orderBatchNo','orderMaterial','orderCustomer','singleField','codeType','customValue','customTitle','sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'];
-      const checkIds=['showMaterialCode','showCustomerPartNo','showBatchNo','showMaterialName','showQuantity','fullQuantityBarcode','fullBatchBarcode','fullBatchNoBarcode','fullMaterialBarcode','fullCustomerBarcode','fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'];
-      const state={mode:stateMode,values:{},checks:{}}; ids.forEach(id=>state.values[id]=$(id).value); checkIds.forEach(id=>state.checks[id]=$(id).checked);
+      const ids=[
+        'materialCode','materialName','productionDate','quantity','copies',
+        'batchNoMode','batchNoManual','batchMaterialLength','batchPrefix','batchSuffix','batchSeparator',
+        'notesTitle','labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity',
+        'captionQuantity','captionBatchBarcode','captionBatchNo','captionMaterial',
+        'captionPosQuantity','captionPosBatchBarcode','captionPosBatchNo','captionPosMaterial',
+        'singleField','codeType','customValue','customTitle',
+        'sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'
+      ];
+      const checkIds=[
+        'itemMaterialText','itemMaterialBarcode','itemBatchText','itemBatchNoBarcode',
+        'itemMaterialNameText','itemQuantityText','itemQuantityBarcode','itemBatchBarcode',
+        'fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'
+      ];
+      const scopeEl=document.querySelector('input[name="printScope"]:checked');
+      const state={mode:stateMode,values:{},checks:{},scope:scopeEl?scopeEl.value:'full',order:layoutItemKeys()};
+      ids.forEach(id=>{ if ($(id)) state.values[id]=$(id).value; });
+      checkIds.forEach(id=>{ if ($(id)) state.checks[id]=$(id).checked; });
       try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); } catch(_) {}
     }
+
     function loadState() {
-      fields.productionDate.value=localDateISO(); let s=null; try{s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null')}catch(_){}
-      if (!s) return;
-      Object.entries(s.values||{}).forEach(([id,val])=>{ if ($(id)) { if (id==='fullLayout' && val==='side') val='side-left'; if (id==='fullLayout' && val==='stack') val='stack-bottom'; $(id).value=val; } }); Object.entries(s.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; }); stateMode=s.mode==='single'?'single':'full';
+      fields.productionDate.value=localDateISO();
+      let saved=null;
+      try { saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch(_) {}
+      if (!saved) {
+        reorderItemRows(DEFAULT_ITEM_ORDER);
+        return;
+      }
+      Object.entries(saved.values||{}).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
+      Object.entries(saved.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; });
+      const scope=document.querySelector('input[name="printScope"][value="'+(saved.scope||'full')+'"]');
+      if (scope) scope.checked=true;
+      reorderItemRows(Array.isArray(saved.order)?saved.order:DEFAULT_ITEM_ORDER);
+      stateMode=saved.mode==='single'?'single':'full';
     }
+
     function resetExample() {
       localStorage.removeItem(STORAGE_KEY);
-      const values={materialCode:'3006177',customerPartNo:'3006177',materialName:'DTS-25R-V-B',productionDate:'2023-12-09',quantity:'500',copies:'1',batchNoMode:'yymmdd',batchNoManual:'',batchBarcodeName:'批次条码',batchPrefix:'',batchSuffix:'',batchSeparator:'',batchSourceA:'customerPartNo',batchSourceALength:'7',batchFixedA:'',batchSourceB:'batchNo',batchSourceBLength:'0',batchFixedB:'',fullLayout:'auto',textDisplayMode:'nameValue',labelMaterialCode:'物料编码',labelCustomerPartNo:'客户料号',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',captionQuantity:'数量条码',captionBatchBarcode:'批次条码',captionBatchNo:'批次号',captionMaterial:'物料编码',captionCustomer:'客户料号',captionPosQuantity:'top',captionPosBatchBarcode:'top',captionPosBatchNo:'top',captionPosMaterial:'top',captionPosCustomer:'top',orderQuantity:'1',orderBatchBarcode:'2',orderBatchNo:'3',orderMaterial:'4',orderCustomer:'5',singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',sizePreset:'80x80',labelWidth:'80',labelHeight:'80',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',contentScale:'1',orientation:'normal'};
+      const values={
+        materialCode:'3006177',materialName:'DTS-25R-V-B',productionDate:localDateISO(),quantity:'500',copies:'1',
+        batchNoMode:'yymmdd',batchNoManual:'',batchMaterialLength:'7',batchPrefix:'',batchSuffix:'',batchSeparator:'',
+        notesTitle:'标签说明',labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',
+        captionQuantity:'数量条码',captionBatchBarcode:'批次条码',captionBatchNo:'批次号条形码',captionMaterial:'物料编码条形码',
+        captionPosQuantity:'none',captionPosBatchBarcode:'none',captionPosBatchNo:'none',captionPosMaterial:'none',
+        singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',
+        sizePreset:'115x75',labelWidth:'115',labelHeight:'75',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',contentScale:'1',orientation:'normal'
+      };
       Object.entries(values).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
-      const defaults={showMaterialCode:true,showCustomerPartNo:false,showBatchNo:true,showMaterialName:true,showQuantity:true,fullQuantityBarcode:true,fullBatchBarcode:true,fullBatchNoBarcode:false,fullMaterialBarcode:false,fullCustomerBarcode:false,fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:true};
+      const defaults={
+        itemMaterialText:true,itemMaterialBarcode:true,itemBatchText:true,itemBatchNoBarcode:true,
+        itemMaterialNameText:true,itemQuantityText:true,itemQuantityBarcode:true,itemBatchBarcode:true,
+        fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:false
+      };
       Object.entries(defaults).forEach(([id,val])=>{ if ($(id)) $(id).checked=val; });
+      const scope=document.querySelector('input[name="printScope"][value="full"]');
+      if (scope) scope.checked=true;
+      reorderItemRows(DEFAULT_ITEM_ORDER);
       setMode('full');
+    }
+
+    function initDragOrdering() {
+      const list=$('labelItemsList'); if (!list) return;
+      qsa('#labelItemsList .label-item-row').forEach(row=>{
+        row.draggable=false;
+        const handle=row.querySelector('.drag-handle');
+        if (handle) handle.draggable=true;
+      });
+      let dragged=null;
+      list.addEventListener('dragstart',e=>{
+        const handle=e.target.closest('.drag-handle');
+        if (!handle) { e.preventDefault(); return; }
+        const row=handle.closest('.label-item-row');
+        if (!row) return;
+        dragged=row;
+        row.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed='move';
+          e.dataTransfer.setData('text/plain',row.dataset.item||'');
+        }
+      });
+      list.addEventListener('dragover',e=>{
+        e.preventDefault();
+        if (!dragged) return;
+        const target=e.target.closest('.label-item-row');
+        if (!target || target===dragged) return;
+        const rect=target.getBoundingClientRect();
+        const after=e.clientY>rect.top+rect.height/2;
+        list.insertBefore(dragged,after?target.nextSibling:target);
+      });
+      list.addEventListener('dragend',()=>{
+        if (dragged) dragged.classList.remove('dragging');
+        dragged=null;
+        updatePreview();
+      });
     }
 
     qsa('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
@@ -993,8 +1088,10 @@
       if (el.type==='checkbox') el.addEventListener('change',updatePreview);
     });
     fields.sizePreset.addEventListener('change',syncPreset); fields.labelWidth.addEventListener('input',syncCustomSize); fields.labelHeight.addEventListener('input',syncCustomSize);
+    qsa('input[name="printScope"]').forEach(el=>el.addEventListener('change',updatePreview));
     $('swapBtn').addEventListener('click',swapSize); $('printBtn').addEventListener('click',printLabels); $('saveImageBtn').addEventListener('click',savePreviewPng); $('copyBtn').addEventListener('click',copyEncoded); $('resetBtn').addEventListener('click',resetExample);
     window.addEventListener('beforeprint',()=>{ try{buildPrintSheet()}catch(_){} });
+    initDragOrdering();
     loadState();
     if (stateMode==='single') setMode(fields.singleField.value || 'quantity'); else setMode('full');
   </script>
