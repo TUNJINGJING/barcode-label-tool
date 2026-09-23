@@ -32,18 +32,18 @@ let html = fs.readFileSync(inputPath, 'utf8');
 
 const replacements = [
   {
-    pattern: /\s*<script\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/qrcode-generator@1\.4\.4\/qrcode\.min\.js["']><\/script>/i,
-    value: '\n  <script>\n/* qrcode-generator 1.4.4 — embedded for offline use */\n' + qrcode + '\n  </script>'
+    tag: '<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>',
+    value: '<script>\n/* qrcode-generator 1.4.4 — embedded for offline use */\n' + qrcode + '\n</script>'
   },
   {
-    pattern: /\s*<script\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/html2canvas@1\.4\.1\/dist\/html2canvas\.min\.js["']><\/script>/i,
-    value: '\n  <script>\n/* html2canvas 1.4.1 — embedded for offline use */\n' + html2canvas + '\n  </script>'
+    tag: '<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>',
+    value: '<script>\n/* html2canvas 1.4.1 — embedded for offline use */\n' + html2canvas + '\n</script>'
   }
 ];
 
-for (const {pattern, value} of replacements) {
-  if (!pattern.test(html)) throw new Error('Expected external dependency tag was not found: ' + pattern);
-  html = html.replace(pattern, value);
+for (const {tag, value} of replacements) {
+  if (!html.includes(tag)) throw new Error('Expected external dependency tag was not found: ' + tag);
+  html = html.replace(tag, value);
 }
 
 html = html.replace(
