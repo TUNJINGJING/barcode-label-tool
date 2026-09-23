@@ -13,6 +13,8 @@
       --title-font: 13pt;
       --text-font: 10pt;
       --content-scale: 1;
+      --table-barcode-width: 100%;
+      --table-barcode-height: 100%;
       --ink: #101828;
       --muted: #667085;
       --line: #d0d5dd;
@@ -39,7 +41,6 @@
     .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
     .title-wrap h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.2; letter-spacing: -.02em; }
     .title-wrap p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
-    .offline-badge { flex: none; padding: 7px 10px; border: 1px solid #b2ccff; border-radius: 999px; background: var(--accent-soft); color: #1849a9; font-size: 12px; font-weight: 700; }
 
     .layout { display: grid; grid-template-columns: minmax(390px, .88fr) minmax(500px, 1.12fr); gap: 20px; align-items: start; }
     .panel { background: var(--panel); border: 1px solid #e4e7ec; border-radius: 16px; box-shadow: 0 8px 28px rgba(16, 24, 40, .06); }
@@ -67,6 +68,11 @@
     input:focus, select:focus, textarea:focus { border-color: #84adff; box-shadow: 0 0 0 3px rgba(21, 94, 239, .11); }
     input[readonly] { background: #f9fafb; color: #475467; }
     .hint { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .label-line { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    .label-line .field-label { margin:0; }
+    .help-tip { position:relative; flex:none; display:inline-grid; place-items:center; width:18px; height:18px; border:1px solid #cfd4dc; border-radius:50%; color:#667085; background:#fff; font-size:11px; font-weight:800; cursor:help; user-select:none; }
+    .help-tip::after { content:attr(data-tip); position:absolute; z-index:30; right:0; top:24px; width:240px; padding:8px 9px; border-radius:8px; background:#101828; color:#fff; font-size:10px; font-weight:500; line-height:1.45; box-shadow:0 8px 24px rgba(16,24,40,.2); opacity:0; pointer-events:none; transform:translateY(-3px); transition:.12s ease; white-space:normal; }
+    .help-tip:hover::after, .help-tip:focus::after { opacity:1; transform:translateY(0); }
 
     .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 12px; }
     .check-item { display: flex; align-items: center; gap: 8px; min-height: 30px; color: #344054; font-size: 12px; cursor: pointer; }
@@ -123,7 +129,7 @@
     .table-value { border-right:.2mm solid #111; font-size:var(--text-font); font-weight:500; line-height:1.05; white-space:nowrap; text-overflow:ellipsis; }
     .table-barcode { padding:.3mm 1.4mm; display:flex; flex-direction:column; align-items:stretch; justify-content:center; }
     .table-barcode.empty { background:#fff; }
-    .table-barcode .barcode-graphic { flex:1 1 0; min-height:0; width:100%; }
+    .table-barcode .barcode-graphic { flex:0 1 auto; min-height:0; width:var(--table-barcode-width); height:var(--table-barcode-height); align-self:center; }
     .table-barcode .human-text { flex:0 0 auto; margin-top:.08mm; font-size:calc(var(--text-font) * .72); line-height:1; letter-spacing:.02em; }
     .table-label.compact .table-key { font-size:calc(var(--text-font) * .68); padding-left:.7mm; padding-right:.7mm; }
     .table-label.compact .table-value { font-size:calc(var(--text-font) * .86); padding-left:.8mm; padding-right:.8mm; }
@@ -217,7 +223,6 @@
     @media (max-width: 600px) {
       .app-shell { width: min(100% - 18px, 1320px); margin: 16px auto 32px; }
       .topbar { display: block; }
-      .offline-badge { display: inline-block; margin-top: 12px; }
       .field-grid, .inline-row, .inline-row.three, .mini-grid, .mini-grid.three { grid-template-columns: 1fr; }
       .quick-modes { grid-template-columns: repeat(2, 1fr); }
       .barcode-config-row { grid-template-columns: 1fr 1fr; }
@@ -246,7 +251,6 @@
         <h1>物料标签与条码打印工具</h1>
         <p>生成可直接打印的物料标签；左侧项目名称、中间数据、右侧条码，支持拖拽调整行顺序、PNG 导出与直接打印。</p>
       </div>
-      <span class="offline-badge">单文件 · 可离线使用</span>
     </header>
 
     <section class="layout">
@@ -306,7 +310,7 @@
               <label class="check-item" style="height:40px"><input id="fullShowText" type="checkbox" checked />条码下显示实际编码内容</label>
             </div>
           </div>
-          <details class="config-group" open>
+          <details class="config-group" id="labelItemsDetails" open>
             <summary>标签项目</summary>
             <div class="config-body">
               <div class="hint">按住左侧拖动柄，上下拖动调整打印顺序。</div>
@@ -384,6 +388,16 @@
             <label class="check-item"><input id="showHumanText" type="checkbox" checked />显示编码内容</label>
             <label class="check-item hidden" id="includeTitleQrWrap"><input id="includeTitleInCode" type="checkbox" />二维码扫码结果包含标题（例如“数量：500”）</label>
           </div>
+          <div class="field-grid" style="margin-top:12px">
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="barcodeHeight">单独条码高度 mm</label><span class="help-tip" tabindex="0" data-tip="只影响“单独条码”模式的一维码高度，不改变编码内容。过矮会降低部分扫码枪的容错率。">?</span></div>
+              <input id="barcodeHeight" type="number" min="8" max="100" step="1" value="19" />
+            </div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="titleFont">单独条码标题字号 pt</label><span class="help-tip" tabindex="0" data-tip="只影响“单独条码 / 二维码”模式上方标题的字号，不影响整张标签。">?</span></div>
+              <input id="titleFont" type="number" min="6" max="40" step="1" value="13" />
+            </div>
+          </div>
           <div class="scan-card">
             <strong>实际编码内容（扫描后得到的内容）</strong>
             <div class="scan-value" id="scanValue"></div>
@@ -392,10 +406,10 @@
         </section>
 
         <section class="section">
-          <div class="section-head"><h2 class="section-title">预览与打印自定义</h2><span class="section-note">单位：毫米 / 磅</span></div>
+          <div class="section-head"><h2 class="section-title">预览与打印自定义</h2><span class="section-note">打印尺寸以毫米为准</span></div>
           <div class="inline-row three">
             <div class="field">
-              <label class="field-label" for="sizePreset">标签尺寸</label>
+              <div class="label-line"><label class="field-label" for="sizePreset">标签尺寸</label><span class="help-tip" tabindex="0" data-tip="选择实际标签纸尺寸。打印机纸张尺寸应与这里一致，否则可能缩放或裁切。">?</span></div>
               <select id="sizePreset">
                 <option value="50x30">50 × 30 mm</option>
                 <option value="60x40">60 × 40 mm</option>
@@ -408,30 +422,48 @@
                 <option value="custom">自定义</option>
               </select>
             </div>
-            <div class="field"><label class="field-label" for="labelWidth">宽度 mm</label><input id="labelWidth" type="number" min="20" max="250" step="1" value="115" /></div>
-            <div class="field"><label class="field-label" for="labelHeight">高度 mm</label><input id="labelHeight" type="number" min="15" max="250" step="1" value="75" /></div>
-          </div>
-          <div class="inline-row" style="margin-top:10px">
-            <div class="field"><label class="field-label" for="labelPadding">内边距 mm</label><input id="labelPadding" type="number" min="0" max="20" step="0.5" value="2" /></div>
-            <div class="field"><label class="field-label" for="barcodeHeight">条码高度 mm</label><input id="barcodeHeight" type="number" min="8" max="100" step="1" value="19" /></div>
-            <div class="field"><label class="field-label" for="titleFont">标题字号 pt</label><input id="titleFont" type="number" min="6" max="40" step="1" value="13" /></div>
-            <div class="field"><label class="field-label" for="textFont">内容字号 pt</label><input id="textFont" type="number" min="5" max="28" step="1" value="10" /></div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="labelWidth">宽度 mm</label><span class="help-tip" tabindex="0" data-tip="标签纸的实际宽度。选择预设尺寸时会自动填写。">?</span></div>
+              <input id="labelWidth" type="number" min="20" max="250" step="1" value="115" />
+            </div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="labelHeight">高度 mm</label><span class="help-tip" tabindex="0" data-tip="标签纸的实际高度。选择预设尺寸时会自动填写。">?</span></div>
+              <input id="labelHeight" type="number" min="15" max="250" step="1" value="75" />
+            </div>
           </div>
           <div class="inline-row" style="margin-top:10px">
             <div class="field">
-              <label class="field-label" for="contentScale">内容缩放</label>
+              <div class="label-line"><label class="field-label" for="labelPadding">内边距 mm</label><span class="help-tip" tabindex="0" data-tip="内容与标签纸边缘之间的留白。打印机容易裁边时可适当增大。">?</span></div>
+              <input id="labelPadding" type="number" min="0" max="20" step="0.5" value="2" />
+            </div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="textFont">内容字号 pt</label><span class="help-tip" tabindex="0" data-tip="调整整张标签左侧项目名称、中间内容和条码数字的整体字号。">?</span></div>
+              <input id="textFont" type="number" min="5" max="28" step="1" value="10" />
+            </div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="barcodeWidthPct">条码宽度 %</label><span class="help-tip" tabindex="0" data-tip="改变右侧一维码的打印宽度，不会改变编码内容。过窄会让黑白条变得太密，可能降低扫码成功率；建议 80%–100%。">?</span></div>
+              <input id="barcodeWidthPct" type="number" min="50" max="100" step="5" value="90" />
+            </div>
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="barcodeHeightPct">条码高度 %</label><span class="help-tip" tabindex="0" data-tip="改变右侧一维码黑条的高度，不会改变编码内容。适度降低没有问题，但过矮会减少扫码容错；建议 60%–100%。">?</span></div>
+              <input id="barcodeHeightPct" type="number" min="40" max="100" step="5" value="85" />
+            </div>
+          </div>
+          <div class="inline-row" style="margin-top:10px">
+            <div class="field">
+              <div class="label-line"><label class="field-label" for="contentScale">内容缩放</label><span class="help-tip" tabindex="0" data-tip="整体放大或缩小标签内部内容。通常保持 100%；只有内容较多或留白较大时再调整。">?</span></div>
               <select id="contentScale"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1" selected>100%</option><option value="1.1">110%</option><option value="1.2">120%</option></select>
             </div>
             <div class="field">
-              <label class="field-label" for="orientation">方向</label>
+              <div class="label-line"><label class="field-label" for="orientation">方向</label><span class="help-tip" tabindex="0" data-tip="交换标签宽度和高度，相当于横向 / 纵向切换。">?</span></div>
               <select id="orientation"><option value="normal">当前宽高</option><option value="swap">交换宽高</option></select>
             </div>
             <div class="field">
-              <label class="field-label">边框</label>
+              <div class="label-line"><label class="field-label">边框</label><span class="help-tip" tabindex="0" data-tip="控制整张标签最外侧是否打印边框，不影响内部表格线和条码。">?</span></div>
               <label class="check-item" style="height:40px"><input id="showBorder" type="checkbox" />打印标签外框</label>
             </div>
             <div class="field">
-              <label class="field-label">操作</label>
+              <div class="label-line"><label class="field-label">交换宽高</label><span class="help-tip" tabindex="0" data-tip="直接互换当前宽度和高度数值，方便快速切换横向与纵向标签。">?</span></div>
               <button class="btn btn-secondary" id="swapBtn" type="button" style="width:100%;min-height:40px">交换宽高</button>
             </div>
           </div>
@@ -476,14 +508,14 @@
 
     const $ = id => document.getElementById(id);
     const qsa = sel => Array.from(document.querySelectorAll(sel));
-    const STORAGE_KEY = 'material-label-tool-v5';
+    const STORAGE_KEY = 'material-label-tool-v6';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
       materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
       batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchMaterialLength:$('batchMaterialLength'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'),
       labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'), labelBatchBarcode:$('labelBatchBarcode'),
       singleField:$('singleField'), codeType:$('codeType'), customValue:$('customValue'), customTitle:$('customTitle'),
-      sizePreset:$('sizePreset'), labelWidth:$('labelWidth'), labelHeight:$('labelHeight'), labelPadding:$('labelPadding'), barcodeHeight:$('barcodeHeight'), titleFont:$('titleFont'), textFont:$('textFont'), contentScale:$('contentScale'), orientation:$('orientation')
+      sizePreset:$('sizePreset'), labelWidth:$('labelWidth'), labelHeight:$('labelHeight'), labelPadding:$('labelPadding'), barcodeHeight:$('barcodeHeight'), titleFont:$('titleFont'), textFont:$('textFont'), barcodeWidthPct:$('barcodeWidthPct'), barcodeHeightPct:$('barcodeHeightPct'), contentScale:$('contentScale'), orientation:$('orientation')
     };
 
     let stateMode = 'full';
@@ -534,7 +566,7 @@
       let total = quiet * 2;
       for (const code of codes) for (const symbol of CODE128_PATTERNS[code]) total += symbol.toLowerCase().charCodeAt(0)-96;
       svg.setAttribute('viewBox', `0 0 ${total} ${barHeight}`);
-      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('shape-rendering', 'crispEdges');
       const ns='http://www.w3.org/2000/svg';
       let x=quiet;
@@ -589,7 +621,7 @@
       let width=clamp(fields.labelWidth.value,20,250,115), height=clamp(fields.labelHeight.value,15,250,75);
       if (fields.orientation.value==='swap') [width,height]=[height,width];
       return { materialCode,materialName,productionDate,batchNo,quantity,batchBarcode,width,height,
-        copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1) };
+        copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), barcodeWidthPct:clamp(fields.barcodeWidthPct.value,50,100,90), barcodeHeightPct:clamp(fields.barcodeHeightPct.value,40,100,85), scale:clamp(fields.contentScale.value,.6,1.4,1) };
     }
 
     const FIELD_META = {
@@ -650,7 +682,7 @@
 
     function setCssVars(v) {
       const root=document.documentElement;
-      root.style.setProperty('--label-w',`${v.width}mm`); root.style.setProperty('--label-h',`${v.height}mm`); root.style.setProperty('--label-pad',`${v.padding}mm`); root.style.setProperty('--barcode-h',`${v.barcodeHeight}mm`); root.style.setProperty('--title-font',`${v.titleFont}pt`); root.style.setProperty('--text-font',`${v.textFont}pt`); root.style.setProperty('--content-scale',String(v.scale));
+      root.style.setProperty('--label-w',`${v.width}mm`); root.style.setProperty('--label-h',`${v.height}mm`); root.style.setProperty('--label-pad',`${v.padding}mm`); root.style.setProperty('--barcode-h',`${v.barcodeHeight}mm`); root.style.setProperty('--title-font',`${v.titleFont}pt`); root.style.setProperty('--text-font',`${v.textFont}pt`); root.style.setProperty('--table-barcode-width',`${v.barcodeWidthPct}%`); root.style.setProperty('--table-barcode-height',`${v.barcodeHeightPct}%`); root.style.setProperty('--content-scale',String(v.scale));
       $('pageStyle').textContent=`@page { size: ${v.width}mm ${v.height}mm; margin: 0; }`;
       setText('sizeText',`${v.width} × ${v.height} mm · ${stateMode==='full'?'整张标签':'单独编码'}`);
     }
@@ -896,7 +928,7 @@
         'batchNoMode','batchNoManual','batchMaterialLength','batchPrefix','batchSuffix','batchSeparator',
         'labelMaterialCode','labelBatchNo','labelMaterialName','labelQuantity','labelBatchBarcode',
         'singleField','codeType','customValue','customTitle',
-        'sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'
+        'sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','barcodeWidthPct','barcodeHeightPct','contentScale','orientation'
       ];
       const checkIds=[
         'itemMaterialCode','itemBatchNo','itemMaterialName','itemQuantity','itemBatchBarcode',
@@ -927,7 +959,7 @@
         batchNoMode:'yymmdd',batchNoManual:'',batchMaterialLength:'7',batchPrefix:'',batchSuffix:'',batchSeparator:'',
         labelMaterialCode:'物料编码',labelBatchNo:'批次号',labelMaterialName:'物料名称',labelQuantity:'数量',labelBatchBarcode:'批次条码',
         singleField:'quantity',codeType:'code128',customValue:'',customTitle:'',
-        sizePreset:'115x75',labelWidth:'115',labelHeight:'75',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',contentScale:'1',orientation:'normal'
+        sizePreset:'115x75',labelWidth:'115',labelHeight:'75',labelPadding:'2',barcodeHeight:'19',titleFont:'13',textFont:'10',barcodeWidthPct:'90',barcodeHeightPct:'85',contentScale:'1',orientation:'normal'
       };
       Object.entries(values).forEach(([id,val])=>{ if ($(id)) $(id).value=val; });
       const defaults={
@@ -990,6 +1022,7 @@
     window.addEventListener('beforeprint',()=>{ try{buildPrintSheet()}catch(_){} });
     initDragOrdering();
     loadState();
+    const labelItemsDetails=$('labelItemsDetails'); if (labelItemsDetails) labelItemsDetails.open=true;
     if (stateMode==='single') setMode(fields.singleField.value || 'quantity'); else setMode('full');
   </script>
 </body>
