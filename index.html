@@ -50,7 +50,7 @@
     .section-title { margin: 0; font-size: 15px; font-weight: 750; }
     .section-note { color: var(--muted); font-size: 11px; }
 
-    .quick-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .quick-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
     .mode-btn { min-height: 40px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #344054; cursor: pointer; font-size: 12px; font-weight: 700; transition: .15s ease; }
     .mode-btn:hover { border-color: #84adff; background: #f9fbff; }
     .mode-btn.active { border-color: #528bff; background: var(--accent-soft); color: #1849a9; box-shadow: 0 0 0 2px rgba(21, 94, 239, .08); }
@@ -114,6 +114,12 @@
     .label-inner { width: 100%; height: 100%; transform: scale(var(--content-scale)); transform-origin: center; }
 
     .full-label { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+    .full-label.layout-side { display: grid; grid-template-columns: minmax(0, var(--full-side-barcodes, 52%)) minmax(0, 1fr); gap: 1.1mm; align-items: stretch; }
+    .full-label.layout-side .field-table { height: 100%; }
+    .full-label.layout-side .field-row { min-height: 0; height: calc((100% - .2mm) / var(--field-rows, 1)); }
+    .full-label.layout-side .full-barcodes { height: 100%; margin-top: 0; }
+    .full-label.layout-side .full-barcodes.compact .code-caption { font-size: 6pt; }
+    .full-label.layout-side .full-barcodes.compact .human-text { font-size: calc(var(--text-font) * .76); }
     .field-table { flex: none; border-top: .2mm solid #111; border-left: .2mm solid #111; }
     .field-row { display: grid; grid-template-columns: 31% 69%; min-height: 7.7mm; border-right: .2mm solid #111; border-bottom: .2mm solid #111; }
     .field-key, .field-value { min-width: 0; display: flex; align-items: center; padding: .8mm 1.2mm; font-size: var(--text-font); line-height: 1.08; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -124,6 +130,7 @@
     .full-barcode-block:last-child { border-bottom: 0; }
     .code-caption { flex: 0 0 auto; width: 100%; margin-bottom: .25mm; text-align: center; font-size: 7.5pt; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .code-svg { display: block; width: 100%; max-width: 100%; overflow: hidden; }
+    /* 条码放进独立的可收缩容器，保证条码图形永远不会覆盖下方的人眼数字。 */
     .barcode-graphic { flex: 1 1 0; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .barcode-graphic .code-svg.linear { width: 100%; height: 100%; min-height: 0; max-height: 100%; }
     .code-svg.qr { width: auto; height: 100%; max-height: 100%; aspect-ratio: 1; }
@@ -189,6 +196,7 @@
             <button class="mode-btn active" type="button" data-mode="full">整张标签</button>
             <button class="mode-btn" type="button" data-mode="quantity">数量条码</button>
             <button class="mode-btn" type="button" data-mode="batchBarcode">批次条码</button>
+            <button class="mode-btn" type="button" data-mode="batchNo">批次号条码</button>
             <button class="mode-btn" type="button" data-mode="materialCode">物料编码</button>
             <button class="mode-btn" type="button" data-mode="customerPartNo">客户料号</button>
             <button class="mode-btn" type="button" data-mode="custom">自定义内容</button>
@@ -239,6 +247,16 @@
 
         <section class="section" id="fullOptions">
           <div class="section-head"><h2 class="section-title">整张标签内容</h2><span class="section-note">字段和条码均可自由开关</span></div>
+          <div class="field-grid" style="margin-bottom:12px">
+            <div class="field">
+              <label class="field-label" for="fullLayout">版式</label>
+              <select id="fullLayout">
+                <option value="stack" selected>上下：文字在上，条码在下</option>
+                <option value="side">左右：条码在左，文字在右</option>
+              </select>
+              <div class="hint">会结合标签宽高自动调整左右占比，尽量保证条码和文字清晰。</div>
+            </div>
+          </div>
           <label class="field-label">文字行</label>
           <div class="check-grid">
             <label class="check-item"><input id="showMaterialCode" type="checkbox" checked />物料编码</label>
@@ -251,6 +269,7 @@
           <div class="check-grid">
             <label class="check-item"><input id="fullQuantityBarcode" type="checkbox" checked />数量条码</label>
             <label class="check-item"><input id="fullBatchBarcode" type="checkbox" checked />批次条码</label>
+            <label class="check-item"><input id="fullBatchNoBarcode" type="checkbox" />批次号条码</label>
             <label class="check-item"><input id="fullMaterialBarcode" type="checkbox" />物料编码条码</label>
             <label class="check-item"><input id="fullCustomerBarcode" type="checkbox" />客户料号条码</label>
           </div>
@@ -394,7 +413,7 @@
     const fields = {
       materialCode: $('materialCode'), customerPartNo: $('customerPartNo'), materialName: $('materialName'), productionDate: $('productionDate'), batchNo: $('batchNo'), quantity: $('quantity'), copies: $('copies'),
       singleField: $('singleField'), codeType: $('codeType'), customValue: $('customValue'), customTitle: $('customTitle'),
-      sizePreset: $('sizePreset'), labelWidth: $('labelWidth'), labelHeight: $('labelHeight'), labelPadding: $('labelPadding'), barcodeHeight: $('barcodeHeight'), titleFont: $('titleFont'), textFont: $('textFont'), contentScale: $('contentScale'), orientation: $('orientation')
+      sizePreset: $('sizePreset'), labelWidth: $('labelWidth'), labelHeight: $('labelHeight'), labelPadding: $('labelPadding'), barcodeHeight: $('barcodeHeight'), titleFont: $('titleFont'), textFont: $('textFont'), contentScale: $('contentScale'), orientation: $('orientation'), fullLayout: $('fullLayout')
     };
 
     let stateMode = 'full';
@@ -494,7 +513,7 @@
       let width=clamp(fields.labelWidth.value,20,250,80), height=clamp(fields.labelHeight.value,15,250,80);
       if (fields.orientation.value==='swap') [width,height]=[height,width];
       return { materialCode, customerPartNo, materialName, productionDate, batchNo, quantity, batchBarcode, width, height,
-        copies: Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1) };
+        copies: Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1), fullLayout: fields.fullLayout.value || 'stack' };
     }
 
     const FIELD_META = {
@@ -551,24 +570,29 @@
       const list=[];
       if ($('fullQuantityBarcode').checked) list.push({title:'数量条码',value:v.quantity});
       if ($('fullBatchBarcode').checked) list.push({title:'批次条码',value:v.batchBarcode});
-      if ($('fullMaterialBarcode').checked) list.push({title:'物料编码',value:v.materialCode});
-      if ($('fullCustomerBarcode').checked) list.push({title:'客户料号',value:v.customerPartNo});
-      return list;
+      if ($('fullBatchNoBarcode').checked) list.push({title:'批次号条码',value:v.batchNo});
+      if ($('fullMaterialBarcode').checked) list.push({title:'物料编码条码',value:v.materialCode});
+      if ($('fullCustomerBarcode').checked) list.push({title:'客户料号条码',value:v.customerPartNo});
+      return list.filter(item => String(item.value || '').trim());
     }
 
     function renderFull(v, host) {
       const full=document.createElement('div'); full.className='full-label';
       const table=document.createElement('div'); table.className='field-table';
-      if ($('showMaterialCode').checked) table.appendChild(makeFieldRow('物料编码',v.materialCode));
-      if ($('showCustomerPartNo').checked) table.appendChild(makeFieldRow('客户料号',v.customerPartNo));
-      if ($('showBatchNo').checked) table.appendChild(makeFieldRow('批次号',v.batchNo));
-      if ($('showMaterialName').checked) table.appendChild(makeFieldRow('物料名称',v.materialName));
-      if ($('showQuantity').checked) table.appendChild(makeFieldRow('数量',v.quantity));
-      if (table.children.length) full.appendChild(table);
+      let textRowCount = 0;
+      if ($('showMaterialCode').checked) { table.appendChild(makeFieldRow('物料编码',v.materialCode)); textRowCount++; }
+      if ($('showCustomerPartNo').checked) { table.appendChild(makeFieldRow('客户料号',v.customerPartNo)); textRowCount++; }
+      if ($('showBatchNo').checked) { table.appendChild(makeFieldRow('批次号',v.batchNo)); textRowCount++; }
+      if ($('showMaterialName').checked) { table.appendChild(makeFieldRow('物料名称',v.materialName)); textRowCount++; }
+      if ($('showQuantity').checked) { table.appendChild(makeFieldRow('数量',v.quantity)); textRowCount++; }
+      if (textRowCount) table.style.setProperty('--field-rows', String(textRowCount));
+
       const specs=barcodeSpecList(v);
+      let barcodes = null;
       if (specs.length) {
-        const barcodes=document.createElement('div'); barcodes.className='full-barcodes';
-        if (specs.length >= 3) barcodes.classList.add('compact');
+        barcodes=document.createElement('div'); barcodes.className='full-barcodes';
+        const compactBySize = (v.height < 55) || (v.width < 55) || (v.fullLayout === 'side' && v.width < 75) || specs.length >= 3;
+        if (compactBySize) barcodes.classList.add('compact');
         barcodes.style.gridTemplateRows=`repeat(${specs.length}, minmax(0,1fr))`;
         for (const spec of specs) {
           const block=document.createElement('div'); block.className='full-barcode-block';
@@ -579,9 +603,26 @@
           try { renderCode128(svg,spec.value); } catch(e) { lastRenderError ||= `${spec.title}：${e.message}`; }
           barcodes.appendChild(block);
         }
-        full.appendChild(barcodes);
       }
-      if (!full.children.length) { const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少选择一个文字行或条码块'; full.appendChild(empty); }
+
+      const wantSide = v.fullLayout === 'side' && textRowCount && specs.length;
+      if (wantSide) {
+        full.classList.add('layout-side');
+        let barcodeWidth = v.width >= v.height ? 48 : 54;
+        if (specs.length >= 3) barcodeWidth += 5;
+        if (textRowCount >= 4) barcodeWidth -= 2;
+        barcodeWidth = Math.max(44, Math.min(62, barcodeWidth));
+        full.style.setProperty('--full-side-barcodes', `${barcodeWidth}%`);
+        full.appendChild(barcodes);
+        full.appendChild(table);
+      } else {
+        if (textRowCount) full.appendChild(table);
+        if (barcodes) full.appendChild(barcodes);
+      }
+
+      if (!full.children.length) {
+        const empty=document.createElement('div'); empty.className='empty-preview'; empty.textContent='请至少选择一个文字行或条码块'; full.appendChild(empty);
+      }
       host.appendChild(full);
     }
 
@@ -730,14 +771,14 @@
     async function copyEncoded() {
       const v=currentValues(); let text='';
       if (stateMode==='single') text=singleInfo(v).encoded;
-      else text=`数量条码：${v.quantity}\n批次条码：${v.batchBarcode}\n物料编码：${v.materialCode}\n客户料号：${v.customerPartNo}`;
+      else text=`数量条码：${v.quantity}\n批次号条码：${v.batchNo}\n批次条码：${v.batchBarcode}\n物料编码：${v.materialCode}\n客户料号：${v.customerPartNo}`;
       try { await navigator.clipboard.writeText(text); $('status').textContent='已复制编码内容'; $('status').classList.add('ok'); setTimeout(()=>{ $('status').textContent=''; $('status').classList.remove('ok'); },1600); }
       catch(_) { $('status').textContent='浏览器未允许自动复制，请手动复制“实际编码内容”。'; }
     }
 
     function saveState() {
-      const ids=['materialCode','customerPartNo','materialName','productionDate','quantity','copies','singleField','codeType','customValue','customTitle','sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation'];
-      const checkIds=['showMaterialCode','showCustomerPartNo','showBatchNo','showMaterialName','showQuantity','fullQuantityBarcode','fullBatchBarcode','fullMaterialBarcode','fullCustomerBarcode','fullShowCaptions','fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'];
+      const ids=['materialCode','customerPartNo','materialName','productionDate','quantity','copies','singleField','codeType','customValue','customTitle','sizePreset','labelWidth','labelHeight','labelPadding','barcodeHeight','titleFont','textFont','contentScale','orientation','fullLayout'];
+      const checkIds=['showMaterialCode','showCustomerPartNo','showBatchNo','showMaterialName','showQuantity','fullQuantityBarcode','fullBatchBarcode','fullBatchNoBarcode','fullMaterialBarcode','fullCustomerBarcode','fullShowCaptions','fullShowText','showTitle','showHumanText','includeTitleInCode','showBorder'];
       const state={mode:stateMode,values:{},checks:{}}; ids.forEach(id=>state.values[id]=$(id).value); checkIds.forEach(id=>state.checks[id]=$(id).checked);
       try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); } catch(_) {}
     }
@@ -747,8 +788,8 @@
       Object.entries(s.values||{}).forEach(([id,val])=>{ if ($(id)) $(id).value=val; }); Object.entries(s.checks||{}).forEach(([id,val])=>{ if ($(id)) $(id).checked=!!val; }); stateMode=s.mode==='single'?'single':'full';
     }
     function resetExample() {
-      localStorage.removeItem(STORAGE_KEY); fields.materialCode.value='3006177'; fields.customerPartNo.value='3006177'; fields.materialName.value='DTS-25R-V-B'; fields.productionDate.value='2023-12-09'; fields.quantity.value='500'; fields.copies.value='1'; fields.singleField.value='quantity'; fields.codeType.value='code128'; fields.customValue.value=''; fields.customTitle.value=''; fields.sizePreset.value='80x80'; fields.labelWidth.value='80'; fields.labelHeight.value='80'; fields.labelPadding.value='2'; fields.barcodeHeight.value='19'; fields.titleFont.value='13'; fields.textFont.value='10'; fields.contentScale.value='1'; fields.orientation.value='normal';
-      const defaults={showMaterialCode:true,showCustomerPartNo:false,showBatchNo:true,showMaterialName:true,showQuantity:true,fullQuantityBarcode:true,fullBatchBarcode:true,fullMaterialBarcode:false,fullCustomerBarcode:false,fullShowCaptions:false,fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:true}; Object.entries(defaults).forEach(([id,val])=>$(id).checked=val);
+      localStorage.removeItem(STORAGE_KEY); fields.materialCode.value='3006177'; fields.customerPartNo.value='3006177'; fields.materialName.value='DTS-25R-V-B'; fields.productionDate.value='2023-12-09'; fields.quantity.value='500'; fields.copies.value='1'; fields.singleField.value='quantity'; fields.codeType.value='code128'; fields.customValue.value=''; fields.customTitle.value=''; fields.sizePreset.value='80x80'; fields.labelWidth.value='80'; fields.labelHeight.value='80'; fields.labelPadding.value='2'; fields.barcodeHeight.value='19'; fields.titleFont.value='13'; fields.textFont.value='10'; fields.contentScale.value='1'; fields.orientation.value='normal'; fields.fullLayout.value='stack';
+      const defaults={showMaterialCode:true,showCustomerPartNo:false,showBatchNo:true,showMaterialName:true,showQuantity:true,fullQuantityBarcode:true,fullBatchBarcode:true,fullBatchNoBarcode:false,fullMaterialBarcode:false,fullCustomerBarcode:false,fullShowCaptions:false,fullShowText:true,showTitle:true,showHumanText:true,includeTitleInCode:false,showBorder:true}; Object.entries(defaults).forEach(([id,val])=>$(id).checked=val);
       setMode('full');
     }
 
