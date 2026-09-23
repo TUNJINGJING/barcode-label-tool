@@ -269,10 +269,16 @@
                 <div class="field"><label class="field-label" for="batchSuffix">固定后缀</label><input id="batchSuffix" type="text" value="" placeholder="可留空" /></div>
               </div>
               <div class="mini-grid three" style="margin-top:9px">
-                <div class="field"><label class="field-label" for="batchSourceA">组成 A</label><select id="batchSourceA"><option value="customerPartNo" selected>客户料号</option><option value="materialCode">物料编码</option><option value="batchNo">批次号</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select></div>
+                <div class="field">
+                  <label class="field-label" for="batchSourceA">组成 A</label>
+                  <select id="batchSourceA"><option value="customerPartNo" selected>客户料号</option><option value="materialCode">物料编码</option><option value="batchNo">批次号</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select>
+                </div>
                 <div class="field"><label class="field-label" for="batchSourceALength">A 取前 N 位</label><input id="batchSourceALength" type="number" min="0" max="50" value="7" /><div class="hint">0 = 使用完整内容</div></div>
                 <div class="field"><label class="field-label" for="batchFixedA">A 固定文本</label><input id="batchFixedA" type="text" placeholder="仅组成A=固定文本时使用" /></div>
-                <div class="field"><label class="field-label" for="batchSourceB">组成 B</label><select id="batchSourceB"><option value="batchNo" selected>批次号</option><option value="customerPartNo">客户料号</option><option value="materialCode">物料编码</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select></div>
+                <div class="field">
+                  <label class="field-label" for="batchSourceB">组成 B</label>
+                  <select id="batchSourceB"><option value="batchNo" selected>批次号</option><option value="customerPartNo">客户料号</option><option value="materialCode">物料编码</option><option value="quantity">数量</option><option value="fixed">固定文本</option><option value="none">无</option></select>
+                </div>
                 <div class="field"><label class="field-label" for="batchSourceBLength">B 取前 N 位</label><input id="batchSourceBLength" type="number" min="0" max="50" value="0" /><div class="hint">0 = 使用完整内容</div></div>
                 <div class="field"><label class="field-label" for="batchFixedB">B 固定文本</label><input id="batchFixedB" type="text" placeholder="仅组成B=固定文本时使用" /></div>
               </div>
@@ -491,7 +497,6 @@
     const qsa = sel => Array.from(document.querySelectorAll(sel));
     const STORAGE_KEY = 'material-label-tool-v2';
     const MM_TO_PX = 96 / 25.4;
-
     const fields = {
       materialCode:$('materialCode'), customerPartNo:$('customerPartNo'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
       batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchBarcodeName:$('batchBarcodeName'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'), batchSourceA:$('batchSourceA'), batchSourceALength:$('batchSourceALength'), batchFixedA:$('batchFixedA'), batchSourceB:$('batchSourceB'), batchSourceBLength:$('batchSourceBLength'), batchFixedB:$('batchFixedB'),
