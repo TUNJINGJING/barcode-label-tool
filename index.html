@@ -475,13 +475,11 @@
     const STORAGE_KEY = 'material-label-tool-v4';
     const MM_TO_PX = 96 / 25.4;
     const fields = {
-      materialCode:$('materialCode'), customerPartNo:$('customerPartNo'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
-      batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchBarcodeName:$('batchBarcodeName'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'), batchSourceA:$('batchSourceA'), batchSourceALength:$('batchSourceALength'), batchFixedA:$('batchFixedA'), batchSourceB:$('batchSourceB'), batchSourceBLength:$('batchSourceBLength'), batchFixedB:$('batchFixedB'),
-      fullLayout:$('fullLayout'), textDisplayMode:$('textDisplayMode'),
-      labelMaterialCode:$('labelMaterialCode'), labelCustomerPartNo:$('labelCustomerPartNo'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
-      captionQuantity:$('captionQuantity'), captionBatchBarcode:$('captionBatchBarcode'), captionBatchNo:$('captionBatchNo'), captionMaterial:$('captionMaterial'), captionCustomer:$('captionCustomer'),
-      captionPosQuantity:$('captionPosQuantity'), captionPosBatchBarcode:$('captionPosBatchBarcode'), captionPosBatchNo:$('captionPosBatchNo'), captionPosMaterial:$('captionPosMaterial'), captionPosCustomer:$('captionPosCustomer'),
-      orderQuantity:$('orderQuantity'), orderBatchBarcode:$('orderBatchBarcode'), orderBatchNo:$('orderBatchNo'), orderMaterial:$('orderMaterial'), orderCustomer:$('orderCustomer'),
+      materialCode:$('materialCode'), materialName:$('materialName'), productionDate:$('productionDate'), batchNo:$('batchNo'), quantity:$('quantity'), copies:$('copies'),
+      batchNoMode:$('batchNoMode'), batchNoManual:$('batchNoManual'), batchMaterialLength:$('batchMaterialLength'), batchPrefix:$('batchPrefix'), batchSuffix:$('batchSuffix'), batchSeparator:$('batchSeparator'),
+      notesTitle:$('notesTitle'), labelMaterialCode:$('labelMaterialCode'), labelBatchNo:$('labelBatchNo'), labelMaterialName:$('labelMaterialName'), labelQuantity:$('labelQuantity'),
+      captionQuantity:$('captionQuantity'), captionBatchBarcode:$('captionBatchBarcode'), captionBatchNo:$('captionBatchNo'), captionMaterial:$('captionMaterial'),
+      captionPosQuantity:$('captionPosQuantity'), captionPosBatchBarcode:$('captionPosBatchBarcode'), captionPosBatchNo:$('captionPosBatchNo'), captionPosMaterial:$('captionPosMaterial'),
       singleField:$('singleField'), codeType:$('codeType'), customValue:$('customValue'), customTitle:$('customTitle'),
       sizePreset:$('sizePreset'), labelWidth:$('labelWidth'), labelHeight:$('labelHeight'), labelPadding:$('labelPadding'), barcodeHeight:$('barcodeHeight'), titleFont:$('titleFont'), textFont:$('textFont'), contentScale:$('contentScale'), orientation:$('orientation')
     };
@@ -496,15 +494,6 @@
       const y=iso.slice(0,4), m=iso.slice(5,7), d=iso.slice(8,10);
       return mode==='yyyymmdd' ? y+m+d : y.slice(2)+m+d;
     }
-    function sourceValue(source, v, fixed='') {
-      if (source==='customerPartNo') return v.customerPartNo;
-      if (source==='materialCode') return v.materialCode;
-      if (source==='batchNo') return v.batchNo;
-      if (source==='quantity') return v.quantity;
-      if (source==='fixed') return fixed;
-      return '';
-    }
-    function sliceFirst(value, n) { n=Number(n)||0; value=String(value||''); return n>0 ? value.slice(0,n) : value; }
     function sanitizeAscii(value) { return String(value ?? '').replace(/[^\x20-\x7E]/g, ''); }
     function setText(id, value) { $(id).textContent = value ?? ''; }
 
@@ -586,49 +575,65 @@
 
     function currentValues() {
       const materialCode=fields.materialCode.value.trim();
-      const customerPartNo=fields.customerPartNo.value.trim();
       const materialName=fields.materialName.value.trim();
       const productionDate=fields.productionDate.value;
       const quantity=fields.quantity.value.trim();
       const batchMode=fields.batchNoMode.value;
       const batchNo=batchMode==='manual' ? fields.batchNoManual.value.trim() : formatDateCode(productionDate,batchMode);
-      const base={materialCode,customerPartNo,materialName,productionDate,quantity,batchNo};
-      const a=sliceFirst(sourceValue(fields.batchSourceA.value,base,fields.batchFixedA.value), fields.batchSourceALength.value);
-      const b=sliceFirst(sourceValue(fields.batchSourceB.value,base,fields.batchFixedB.value), fields.batchSourceBLength.value);
-      const middle=(a && b) ? fields.batchSeparator.value : '';
-      const batchBarcode=`${fields.batchPrefix.value}${a}${middle}${b}${fields.batchSuffix.value}`.trim();
-      let width=clamp(fields.labelWidth.value,20,250,80), height=clamp(fields.labelHeight.value,15,250,80);
+      const takeN=Math.max(0,Math.min(50,Number(fields.batchMaterialLength.value)||0));
+      const materialPart=takeN>0 ? materialCode.slice(0,takeN) : materialCode;
+      const middle=(materialPart && batchNo) ? fields.batchSeparator.value : '';
+      const batchBarcode=(fields.batchPrefix.value + materialPart + middle + batchNo + fields.batchSuffix.value).trim();
+      let width=clamp(fields.labelWidth.value,20,250,115), height=clamp(fields.labelHeight.value,15,250,75);
       if (fields.orientation.value==='swap') [width,height]=[height,width];
-      return { materialCode,customerPartNo,materialName,productionDate,batchNo,quantity,batchBarcode,batchBarcodeName:fields.batchBarcodeName.value.trim()||'组合条码',width,height,
-        copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1), fullLayout:fields.fullLayout.value||'auto', textDisplayMode:fields.textDisplayMode.value||'nameValue' };
+      const scopeEl=document.querySelector('input[name="printScope"]:checked');
+      const printScope=scopeEl ? scopeEl.value : 'full';
+      return { materialCode,materialName,productionDate,batchNo,quantity,batchBarcode,width,height,printScope,
+        copies:Math.round(clamp(fields.copies.value,1,200,1)), padding:clamp(fields.labelPadding.value,0,20,2), barcodeHeight:clamp(fields.barcodeHeight.value,8,100,19), titleFont:clamp(fields.titleFont.value,6,40,13), textFont:clamp(fields.textFont.value,5,28,10), scale:clamp(fields.contentScale.value,.6,1.4,1) };
     }
 
     const FIELD_META = {
-      quantity: ['数量', v=>v.quantity], batchBarcode: ['批次条码', v=>v.batchBarcode], materialCode: ['物料编码', v=>v.materialCode], customerPartNo: ['客户料号', v=>v.customerPartNo], batchNo: ['批次号', v=>v.batchNo], materialName: ['物料名称', v=>v.materialName], productionDate: ['生产日期', v=>v.productionDate]
+      quantity: ['数量', v=>v.quantity],
+      batchBarcode: ['批次条码', v=>v.batchBarcode],
+      materialCode: ['物料编码', v=>v.materialCode],
+      batchNo: ['批次号', v=>v.batchNo],
+      materialName: ['物料名称', v=>v.materialName],
+      productionDate: ['生产日期', v=>v.productionDate]
     };
 
     function summaryText(v) {
-      return [`${fields.labelMaterialCode.value||'物料编码'}：${v.materialCode}`,`${fields.labelCustomerPartNo.value||'客户料号'}：${v.customerPartNo}`,`${fields.labelBatchNo.value||'批次号'}：${v.batchNo}`,`${fields.labelMaterialName.value||'物料名称'}：${v.materialName}`,`${fields.labelQuantity.value||'数量'}：${v.quantity}`,`${v.batchBarcodeName}：${v.batchBarcode}`].join('\n');
+      return [
+        (fields.labelMaterialCode.value||'物料编码')+' '+v.materialCode,
+        (fields.labelBatchNo.value||'批次号')+' '+v.batchNo,
+        (fields.labelMaterialName.value||'物料名称')+' '+v.materialName,
+        (fields.labelQuantity.value||'数量')+' '+v.quantity,
+        '批次条码 '+v.batchBarcode
+      ].join('\n');
+    }
+
+    function batchModeDescription() {
+      if (fields.batchNoMode.value==='yyyymmdd') return '生产日期（年4位 + 月2位 + 日2位）';
+      if (fields.batchNoMode.value==='manual') return '手动输入';
+      return '生产日期（年2位 + 月2位 + 日2位）';
     }
 
     function updateBatchRuleDisplay(v) {
-      $('batchNo').readOnly = fields.batchNoMode.value !== 'manual';
       $('batchNoManualWrap').classList.toggle('hidden', fields.batchNoMode.value !== 'manual');
-      fields.batchNo.value = v.batchNo;
-      setText('batchRuleTitle', `${v.batchBarcodeName}规则预览`);
-      const aName=fields.batchSourceA.options[fields.batchSourceA.selectedIndex]?.text || '';
-      const bName=fields.batchSourceB.options[fields.batchSourceB.selectedIndex]?.text || '';
-      const nA=Number(fields.batchSourceALength.value)||0, nB=Number(fields.batchSourceBLength.value)||0;
-      const descA=fields.batchSourceA.value==='none'?'无':`${aName}${nA>0?`前${nA}位`:''}`;
-      const descB=fields.batchSourceB.value==='none'?'无':`${bName}${nB>0?`前${nB}位`:''}`;
-      const parts=[];
-      if (fields.batchPrefix.value) parts.push(`前缀「${fields.batchPrefix.value}」`);
-      if (fields.batchSourceA.value!=='none') parts.push(descA);
-      if (fields.batchSeparator.value && fields.batchSourceA.value!=='none' && fields.batchSourceB.value!=='none') parts.push(`分隔符「${fields.batchSeparator.value}」`);
-      if (fields.batchSourceB.value!=='none') parts.push(descB);
-      if (fields.batchSuffix.value) parts.push(`后缀「${fields.batchSuffix.value}」`);
-      setText('batchBarcodeRuleValue', `${parts.join(' + ') || '空规则'} → ${v.batchBarcode || '（暂未生成）'}`);
-      fields.captionBatchBarcode.placeholder=v.batchBarcodeName;
+      fields.batchNo.value=v.batchNo;
+      const n=Math.max(0,Number(fields.batchMaterialLength.value)||0);
+      const source=n>0 ? ('物料编码前'+n+'位') : '完整物料编码';
+      const part=n>0 ? v.materialCode.slice(0,n) : v.materialCode;
+      const sep=(part && v.batchNo) ? fields.batchSeparator.value : '';
+      const pieces=[];
+      if (fields.batchPrefix.value) pieces.push('前缀 '+fields.batchPrefix.value);
+      if (part) pieces.push(part);
+      if (sep) pieces.push(sep);
+      if (v.batchNo) pieces.push(v.batchNo);
+      if (fields.batchSuffix.value) pieces.push('后缀 '+fields.batchSuffix.value);
+      let out='批次号 '+(v.batchNo||'（未生成）')+'\n';
+      out+='批次条码 '+source+' + 批次号 → '+(v.batchBarcode||'（未生成）');
+      if (pieces.length) out+='\n当前组合 '+pieces.join(' + ');
+      setText('batchBarcodeRuleValue',out);
     }
 
     function singleInfo(v) {
@@ -636,7 +641,7 @@
       let title='', raw='';
       if (key==='custom') { title='自定义内容'; raw=fields.customValue.value; }
       else if (key==='summary') { title='物料标签信息'; raw=summaryText(v); }
-      else { const meta=FIELD_META[key] || FIELD_META.quantity; title=key==='batchBarcode' ? v.batchBarcodeName : meta[0]; raw=meta[1](v); }
+      else { const meta=FIELD_META[key] || FIELD_META.quantity; title=meta[0]; raw=meta[1](v); }
       title=fields.customTitle.value.trim() || title;
       let encoded=String(raw ?? '');
       if ($('includeTitleInCode').checked && fields.codeType.value==='qr') encoded=`${title}：${encoded}`;
